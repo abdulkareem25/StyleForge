@@ -1,0 +1,124 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   StyleForge — Global Styles
+   Design system: Frontend Spec §2 / DESIGN-01
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Google Fonts: Bricolage Grotesque (display), Work Sans (body), IBM Plex Mono (tag) */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base resets ─────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-body;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  /* Respect user's motion preferences — no gratuitous animation */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ── Type scale utilities ────────────────────────────────────────────────── */
+@layer components {
+  /* Display XL — 56px / Bricolage Grotesque SemiBold — Landing page hero */
+  .text-display-xl {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 56px;
+    line-height: 1.1;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Display L — 40px / Bricolage Grotesque SemiBold — Page titles */
+  .text-display-l {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 40px;
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Heading 1 — 28px / Bricolage Grotesque Medium — Section headers */
+  .text-h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 28px;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+
+  /* Heading 2 — 22px / Bricolage Grotesque Medium — Card and component titles */
+  .text-h2 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 22px;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+
+  /* Body Large — 17px / Work Sans Regular */
+  .text-body-lg {
+    font-family: 'Work Sans', sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  /* Body — 15px / Work Sans Regular */
+  .text-body {
+    font-family: 'Work Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  /* Caption — 13px / Work Sans Medium */
+  .text-caption {
+    font-family: 'Work Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+
+  /* Tag — 11px uppercase / IBM Plex Mono Medium — Garment-tag chips */
+  .text-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Garment-tag chip — the signature element ──────────────────────── */
+  .chip {
+    @apply text-tag inline-flex items-center px-2 py-0.5 rounded-tag border border-line text-ink;
+  }
+
+  .chip-selected {
+    @apply text-tag inline-flex items-center px-2 py-0.5 rounded-tag bg-indigo text-white border border-indigo;
+  }
+
+  /* ── Focus ring — accessible 2px Indigo ring, never none ──────────── */
+  .focus-ring {
+    @apply outline-none ring-2 ring-indigo ring-offset-2;
+  }
+}
