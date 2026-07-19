@@ -56,7 +56,7 @@ function StepCard({ step, index }) {
           </div>
           {/* Step number chip — garment-tag style */}
           <span
-            className="font-mono text-[10px] uppercase tracking-widest text-ink/40 mt-2 lg:mt-0 lg:self-end lg:mb-1.5"
+            className="text-micro text-ink/40 mt-2 lg:mt-0 lg:self-end lg:mb-1.5"
             aria-hidden="true"
           >
             {step.number}
@@ -73,7 +73,7 @@ function StepCard({ step, index }) {
             {step.chips.map((chip) => (
               <span
                 key={chip}
-                className="font-mono text-[10px] uppercase tracking-widest px-2 py-1 rounded-tag border border-line text-ink/55 bg-surface"
+                className="text-micro px-2 py-1 rounded-tag border border-line text-ink/55 bg-surface"
               >
                 {chip}
               </span>
@@ -124,7 +124,7 @@ export default function HowItWorksSection() {
           <a
             href="/auth"
             id="hiw-signup-cta"
-            className="inline-flex items-center gap-2 text-body font-medium text-indigo hover:text-indigo/80 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 rounded-sm"
+            className="inline-flex items-center gap-2 text-body font-medium text-indigo hover:text-indigo/80 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 rounded-card"
           >
             Get started free →
           </a>

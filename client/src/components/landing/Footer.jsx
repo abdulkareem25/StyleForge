@@ -14,12 +14,12 @@ export default function Footer() {
         <div>
           <Link
             to="/"
-            className="font-display font-semibold text-[18px] text-ink hover:text-indigo transition-colors focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 rounded-sm"
+            className="font-display font-semibold text-body-lg text-ink hover:text-indigo transition-colors focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 rounded-card"
             aria-label="StyleForge home"
           >
             StyleForge
           </Link>
-          <p className="text-caption text-ink/40 mt-1 font-mono uppercase tracking-widest text-[10px]">
+          <p className="text-micro text-ink/40 mt-1">
             Your wardrobe · Smarter
           </p>
         </div>
@@ -31,7 +31,7 @@ export default function Footer() {
               <Link
                 to="/auth"
                 id="footer-signup"
-                className="text-body text-ink/60 hover:text-indigo transition-colors focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-1 rounded-sm"
+                className="text-body text-ink/60 hover:text-indigo transition-colors focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-1 rounded-card"
               >
                 Sign Up
               </Link>
@@ -40,7 +40,7 @@ export default function Footer() {
               <Link
                 to="/auth"
                 id="footer-login"
-                className="text-body text-ink/60 hover:text-indigo transition-colors focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-1 rounded-sm"
+                className="text-body text-ink/60 hover:text-indigo transition-colors focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-1 rounded-card"
               >
                 Log In
               </Link>

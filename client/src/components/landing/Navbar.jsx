@@ -26,7 +26,7 @@ export default function Navbar() {
           {/* Logo wordmark */}
           <Link
             to="/"
-            className="font-display font-semibold text-[22px] text-ink tracking-tight hover:text-indigo transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 rounded-sm"
+            className="font-display font-semibold text-h2 text-ink tracking-tight hover:text-indigo transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 rounded-card"
             aria-label="StyleForge home"
           >
             StyleForge

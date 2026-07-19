@@ -7,7 +7,7 @@ import outfitComposed from '../../assets/images/outfit-composed.png'
 function GarmentChip({ label, selected = false }) {
   return (
     <span
-      className={`font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-tag border font-medium leading-none ${
+      className={`text-micro px-2 py-0.5 rounded-tag border leading-none ${
         selected
           ? 'bg-indigo text-white border-indigo'
           : 'bg-surface/90 text-ink border-line'
@@ -49,7 +49,7 @@ export default function HeroSection() {
         className="absolute inset-0 pointer-events-none opacity-[0.03]"
         style={{
           backgroundImage:
-            'repeating-linear-gradient(0deg, #211F1C 0px, #211F1C 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, #211F1C 0px, #211F1C 1px, transparent 1px, transparent 40px)',
+            'repeating-linear-gradient(0deg, var(--color-ink, #211F1C) 0px, var(--color-ink, #211F1C) 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, var(--color-ink, #211F1C) 0px, var(--color-ink, #211F1C) 1px, transparent 1px, transparent 40px)',
         }}
         aria-hidden="true"
       />
@@ -73,7 +73,7 @@ export default function HeroSection() {
           <span
             className="relative inline-block"
             style={{
-              background: 'linear-gradient(135deg, #2B3A67 30%, #4A5D9A)',
+              background: 'linear-gradient(135deg, var(--color-indigo, #2B3A67) 30%, var(--color-indigo-light, #4A5D9A))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -142,7 +142,7 @@ export default function HeroSection() {
               </div>
               {/* Panel label */}
               <div className="absolute top-3 right-3" aria-hidden="true">
-                <span className="bg-ink/70 text-white text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded-tag">
+                <span className="bg-ink/70 text-white text-micro font-mono px-2 py-1 rounded-tag">
                   Your Closet
                 </span>
               </div>
@@ -186,7 +186,7 @@ export default function HeroSection() {
               </div>
               {/* Outfit panel label */}
               <div className="absolute top-3 right-3" aria-hidden="true">
-                <span className="bg-indigo text-white text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded-tag">
+                <span className="bg-indigo text-white text-micro font-mono px-2 py-1 rounded-tag">
                   Your Outfit
                 </span>
               </div>
@@ -194,7 +194,7 @@ export default function HeroSection() {
               <div className="absolute bottom-3 left-3 right-3" aria-hidden="true">
                 <div className="bg-surface/95 backdrop-blur-sm border border-line rounded-tag px-3 py-2 flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-brass flex-shrink-0" />
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-ink/70">
+                  <span className="text-micro font-mono text-ink/70">
                     Fresh look · Not worn in 30 days
                   </span>
                 </div>
@@ -207,7 +207,7 @@ export default function HeroSection() {
       {/* Scroll hint */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 animate-bounce" aria-hidden="true">
         <div className="w-px h-8 bg-gradient-to-b from-ink/0 to-ink/25 rounded-full" />
-        <span className="text-caption text-ink/30 text-[11px] uppercase tracking-widest font-mono">scroll</span>
+        <span className="text-tag text-ink/30 uppercase tracking-widest font-mono">scroll</span>
       </div>
     </section>
   )

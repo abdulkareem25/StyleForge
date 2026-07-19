@@ -6,6 +6,11 @@
 /* Google Fonts: Bricolage Grotesque (display), Work Sans (body), IBM Plex Mono (tag) */
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
+/* ── Design tokens as CSS custom properties (Frontend Spec §2) ─────────── */
+:root {
+  --color-indigo-light: #4A5D9A; /* Lighter indigo for gradients (not in base palette) */
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -102,6 +107,16 @@
   .text-tag {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
+    line-height: 1.2;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Micro text — 10px, for decorative labels smaller than tag chips */
+  .text-micro {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
     line-height: 1.2;
     font-weight: 500;
     text-transform: uppercase;
