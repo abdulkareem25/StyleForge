@@ -1,25 +1,28 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 import LandingPage from './pages/LandingPage'
-
-// Placeholder for AUTH-06 — reserves the /auth route that CTAs link to
-function AuthPlaceholder() {
-  return (
-    <div className="min-h-screen bg-canvas flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-h2 font-display text-ink">Auth page</p>
-        <p className="text-body text-ink/60 mt-2">AUTH-06 — coming soon</p>
-      </div>
-    </div>
-  )
-}
+import Dashboard from './pages/Dashboard'
+import Wardrobe from './pages/Wardrobe'
+import GenerateOutfit from './pages/GenerateOutfit'
+import History from './pages/History'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+import Preferences from './pages/Preferences'
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/auth" element={<AuthPlaceholder />} />
-      {/* Catch-all: redirect unknown routes to landing */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/wardrobe" element={<Wardrobe />} />
+        <Route path="/generate" element={<GenerateOutfit />} />
+        <Route path="/history" element={<History />} />
+        <Route path="/preferences" element={<Preferences />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AuthProvider>
   )
 }
