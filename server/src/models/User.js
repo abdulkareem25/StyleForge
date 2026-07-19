@@ -10,6 +10,9 @@ const userSchema = new mongoose.Schema({
     printTolerance: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
   },
   isActive: { type: Boolean, default: true },
+  emailVerified: { type: Boolean, default: false },
+  verificationToken: { type: String, default: null },
+  verificationTokenExpiry: { type: Date, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

@@ -11,4 +11,15 @@ const limiter = rateLimit({
   message: { success: false, data: null, error: 'Too many requests, please try again later' },
 });
 
+// Stricter limiter for auth endpoints to prevent signup abuse (Security doc §4, SETUP-04)
+const signupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Max 10 signup attempts per IP per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, error: 'Too many signup attempts, please try again after 15 minutes' },
+});
+
+limiter.signupLimiter = signupLimiter;
+
 module.exports = limiter;
