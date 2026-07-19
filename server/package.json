@@ -3,11 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "description": "StyleForge backend — Node.js/Express API",
-  "main": "src/server.js",
+  "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "lint": "echo \"TODO: add linter\""
+    "lint": "eslint src/"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -19,6 +19,8 @@
     "mongoose": "^8.9.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.0",
     "nodemon": "^3.1.9"
   }
 }

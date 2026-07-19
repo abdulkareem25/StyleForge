@@ -73,6 +73,50 @@ The client runs on `http://localhost:5173` and proxies API requests to the serve
 - Server health check: `http://localhost:5000/api/v1/health`
 - Client: `http://localhost:5173` — Dashboard shows server connection status
 
+## Linting
+
+```bash
+# Client (oxlint)
+cd client && npm run lint
+
+# Server (ESLint)
+cd server && npm run lint
+```
+
+## Deployment
+
+### Hosting Split
+
+| Service | Platform | URL |
+|---------|----------|-----|
+| Backend API | Render Web Service | `https://styleforge-api.onrender.com` |
+| Frontend | Render Static Site | `https://styleforge-client.onrender.com` |
+
+Both are configured via `render.yaml` (Render Blueprint).
+
+### Deploy to Render
+
+1. Push to GitHub
+2. Go to [Render Dashboard](https://dashboard.render.com) → New → Blueprint
+3. Connect the repo — Render reads `render.yaml` and creates both services
+4. After frontend deploys, set `CLIENT_URL` on the backend service to the frontend URL (e.g., `https://styleforge-client.onrender.com`)
+5. Set all `sync: false` env vars on the backend service (secrets from `.env`)
+
+### Render Free Tier
+
+The backend runs on Render's free tier. Free web services spin down after **15 minutes** of inactivity and take **30–60 seconds** to cold-start on the next request. This is fine for development and demos where you're the one clicking. A real first-time visitor hitting a cold instance will see a stalled loading screen for up to a minute.
+
+**Decision:** For MVP/demo purposes, the free tier is acceptable. Before sharing with real users, we will evaluate either a paid instance ($7/mo) or a scheduled keep-alive ping (cron job hitting the health endpoint every 10 minutes) to prevent spin-down.
+
+## CI
+
+GitHub Actions runs lint on every PR and push to `main`:
+
+- **Client:** `oxlint` (configured in `client/.oxlintrc.json`)
+- **Server:** `eslint` (configured in `server/eslint.config.js`)
+
+Workflow: `.github/workflows/ci.yml`
+
 ## Project Structure
 
 ```
@@ -102,8 +146,11 @@ styleforge/
 │   │   ├── validators/
 │   │   ├── app.js
 │   │   └── server.js
+│   ├── eslint.config.js
 │   └── .env.example
 │
+├── .github/workflows/ci.yml   # CI: lint on PR
+├── render.yaml                 # Render Blueprint (deployment)
 ├── .gitignore
 └── README.md
 ```
