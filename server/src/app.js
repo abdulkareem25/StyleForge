@@ -1,12 +1,12 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
+const rateLimiter = require('./middleware/rateLimiter');
+const errorHandler = require('./middleware/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const wardrobeRoutes = require('./routes/wardrobeRoutes');
 const outfitRoutes = require('./routes/outfitRoutes');
 const userRoutes = require('./routes/userRoutes');
-const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -15,7 +15,7 @@ app.use(helmet());
 
 // ── CORS ───────────────────────────────────────────────────────────────
 // CLIENT_URL must be set to the deployed frontend origin on Render.
-// In production: https://styleforge-client.onrender.com (Render Static Site)
+// In production: https://styleforge-mdez.onrender.com (Render Static Site)
 // In development: http://localhost:5173
 // Credentials: true is required for cross-origin httpOnly refresh-token cookie.
 app.use(cors({
@@ -38,9 +38,8 @@ app.use(express.json({ limit: '10mb' }));
 // app.use(cookieParser(process.env.COOKIE_SECRET));
 
 // ── Global rate limiter ────────────────────────────────────────────────
-const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000;
-const max = parseInt(process.env.RATE_LIMIT_MAX, 10) || 100;
-app.use(rateLimit({ windowMs, max, standardHeaders: true, legacyHeaders: false }));
+// Reads RATE_LIMIT_WINDOW_MS and RATE_LIMIT_MAX from env vars.
+app.use(rateLimiter);
 
 // ── Health check ───────────────────────────────────────────────────────
 app.get('/api/v1/health', (_req, res) => {
@@ -48,7 +47,11 @@ app.get('/api/v1/health', (_req, res) => {
 });
 
 // ── API routes ─────────────────────────────────────────────────────────
+// Auth routes are public (no authMiddleware).
 app.use('/api/v1/auth', authRoutes);
+
+// Protected routes use authMiddleware at the route level.
+// validateRequest is applied per-route where schemas exist.
 app.use('/api/v1/wardrobe', wardrobeRoutes);
 app.use('/api/v1/outfits', outfitRoutes);
 app.use('/api/v1/users', userRoutes);
@@ -58,7 +61,7 @@ app.use((_req, res) => {
   res.status(404).json({ success: false, data: null, error: 'Not found' });
 });
 
-// ── Error handler ──────────────────────────────────────────────────────
+// ── Error handler (must be last) ───────────────────────────────────────
 app.use(errorHandler);
 
 module.exports = app;
