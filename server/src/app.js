@@ -26,16 +26,9 @@ app.use(cors({
 // ── Body parsing ───────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 
-// ── Cookie parser (needed for refresh-token cookie) ────────────────────
-// Will be wired in AUTH-02 when refresh-token cookie is implemented.
-// Cross-origin cookie strategy (frontend on Render Static Site, API on Render Web Service):
-//   - sameSite: 'none' — required for cross-origin (different subdomains)
-//   - secure: true — required (Render provides HTTPS)
-//   - httpOnly: true — required (XSS protection, Security doc §10)
-//   - domain: NOT set — let browser default to the API's domain
-//   - path: '/' — sent on all routes
-// const cookieParser = require('cookie-parser');
-// app.use(cookieParser(process.env.COOKIE_SECRET));
+// ── Cookie parser (refresh-token cookie, AUTH-02) ─────────────────────
+const cookieParser = require('cookie-parser');
+app.use(cookieParser(process.env.COOKIE_SECRET));
 
 // ── Global rate limiter ────────────────────────────────────────────────
 // Reads RATE_LIMIT_WINDOW_MS and RATE_LIMIT_MAX from env vars.

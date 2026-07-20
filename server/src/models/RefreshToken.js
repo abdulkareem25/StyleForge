@@ -5,6 +5,7 @@ const refreshTokenSchema = new mongoose.Schema({
   tokenHash: { type: String, required: true },
   expiresAt: { type: Date, required: true },
   revoked: { type: Boolean, default: false },
+  deviceInfo: { type: String, default: null },
 }, { timestamps: true });
 
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

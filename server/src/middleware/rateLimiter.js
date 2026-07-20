@@ -20,6 +20,17 @@ const signupLimiter = rateLimit({
   message: { success: false, data: null, error: 'Too many signup attempts, please try again after 15 minutes' },
 });
 
+// Stricter limiter for login — Security doc §9, AUTH-02
+// 10 failed attempts per IP per 15-minute window before temporary slowdown
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Max 10 login attempts per IP per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, error: 'Too many login attempts, please try again after 15 minutes' },
+});
+
 limiter.signupLimiter = signupLimiter;
+limiter.loginLimiter = loginLimiter;
 
 module.exports = limiter;

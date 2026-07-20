@@ -1,6 +1,12 @@
 const User = require('../models/User');
-const { hashPassword } = require('../utils/hashUtils');
-const { generateVerificationToken, hashVerificationToken } = require('../utils/tokenUtils');
+const RefreshToken = require('../models/RefreshToken');
+const { hashPassword, comparePassword } = require('../utils/hashUtils');
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  generateVerificationToken,
+  hashVerificationToken,
+} = require('../utils/tokenUtils');
 const { sendVerificationEmail } = require('../services/emailService');
 
 const signup = async (req, res, next) => {
@@ -122,10 +128,92 @@ const verifyEmail = async (req, res, next) => {
   }
 };
 
+const login = async (req, res, next) => {
+  try {
+    const { email, password, rememberMe } = req.body;
+
+    const DUMMY_HASH = '$2a$12$x'.padEnd(60, '0');
+
+    const user = await User.findOne({ email });
+
+    // Security doc §7: identical error for invalid email AND invalid password
+    if (!user) {
+      await comparePassword(password, DUMMY_HASH);
+      return res.status(401).json({
+        success: false,
+        data: null,
+        error: 'Invalid email or password',
+      });
+    }
+
+    // Unverified accounts — distinct message per acceptance criteria
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        error: 'Please verify your email before logging in. Check your inbox for the verification link.',
+      });
+    }
+
+    const isMatch = await comparePassword(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        data: null,
+        error: 'Invalid email or password',
+      });
+    }
+
+    // Issue access token (short-lived JWT)
+    const accessToken = generateAccessToken({ id: user._id, email: user.email });
+
+    // Issue refresh token (opaque random, stored hashed)
+    const { rawToken, tokenHash } = generateRefreshToken();
+
+    const refreshDays = rememberMe ? 30 : 7;
+    const expiresAt = new Date(Date.now() + refreshDays * 24 * 60 * 60 * 1000);
+
+    // Capture device/user-agent (Security doc §1 — retrofitting UI later is easy, retrofitting stored data isn't)
+    const deviceInfo = req.headers['user-agent'] || null;
+
+    await RefreshToken.create({
+      userId: user._id,
+      tokenHash,
+      expiresAt,
+      deviceInfo,
+    });
+
+    // httpOnly cookie — never accessible via JavaScript (Security doc §10)
+    res.cookie('refreshToken', rawToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+      expires: expiresAt,
+    });
+
+    // Access token in response body — client holds in memory only
+    res.status(200).json({
+      success: true,
+      data: {
+        accessToken,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+      },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   signup,
   verifyEmail,
-  login: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
+  login,
   refresh: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
   logout: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
   forgotPassword: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
