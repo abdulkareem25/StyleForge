@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Mail, User, Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import { Button, Input, Card } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
@@ -62,8 +62,12 @@ export default function AuthPage() {
 
   const emailRef = useRef(null)
   const navigate = useNavigate()
+  const location = useLocation()
   const { setUser } = useAuth()
   const toast = useToast()
+
+  const from = location.state?.from?.pathname || '/dashboard'
+  const redirectMessage = location.state?.message
 
   useEffect(() => {
     if (mode === 'login' && emailRef.current) {
@@ -140,7 +144,7 @@ export default function AuthPage() {
             localStorage.setItem('accessToken', data.data.accessToken)
             setUser(data.data.user)
             toast.success('Welcome back!')
-            navigate('/dashboard')
+            navigate(from, { replace: true })
           }
         }
       } catch (err) {
@@ -290,6 +294,15 @@ export default function AuthPage() {
                 Log in instead?
               </button>
             )}
+          </div>
+        )}
+
+        {redirectMessage && (
+          <div
+            className="mb-4 px-3 py-2.5 rounded-card bg-indigo/10 border border-indigo/20"
+            role="status"
+          >
+            <p className="text-body text-indigo">{redirectMessage}</p>
           </div>
         )}
 

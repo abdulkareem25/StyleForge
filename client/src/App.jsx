@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ToastProvider } from './components/ui/Toast'
+import ProtectedRoute from './components/layout/ProtectedRoute'
 import LandingPage from './pages/LandingPage'
 import AuthPage from './pages/AuthPage'
 import Dashboard from './pages/Dashboard'
@@ -12,19 +14,72 @@ import AccountSecurity from './pages/AccountSecurity'
 export default function App() {
   return (
     <AuthProvider>
-      <Routes>
+      <ToastProvider>
+        <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/signup" element={<AuthPage />} />
-        <Route path="/onboarding" element={<div className="min-h-screen bg-canvas flex items-center justify-center"><p className="text-h2 font-display text-ink">Onboarding — coming soon</p></div>} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/wardrobe" element={<Wardrobe />} />
-        <Route path="/generate" element={<GenerateOutfit />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/preferences" element={<Preferences />} />
-        <Route path="/account/security" element={<AccountSecurity />} />
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <div className="min-h-screen bg-canvas flex items-center justify-center">
+                <p className="text-h2 font-display text-ink">Onboarding — coming soon</p>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wardrobe"
+          element={
+            <ProtectedRoute>
+              <Wardrobe />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/generate"
+          element={
+            <ProtectedRoute>
+              <GenerateOutfit />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <History />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/preferences"
+          element={
+            <ProtectedRoute>
+              <Preferences />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account/security"
+          element={
+            <ProtectedRoute>
+              <AccountSecurity />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </ToastProvider>
     </AuthProvider>
   )
 }
