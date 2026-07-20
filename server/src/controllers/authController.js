@@ -23,6 +23,20 @@ const signup = async (req, res, next) => {
       });
     }
 
+    // Block re-signup during the 30-day grace period (AUTH-05)
+    // Use withDeleted to find soft-deleted users that the pre-find hook would hide
+    const deletedUser = await User.findOne({ email }).setOptions({ withDeleted: true });
+    if (deletedUser && deletedUser.deletedAt) {
+      const daysRemaining = Math.ceil(
+        (deletedUser.deletedAt.getTime() + User.GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000),
+      );
+      return res.status(409).json({
+        success: false,
+        data: null,
+        error: `This email is pending deletion. Please contact support to restore your account, or try again in ${daysRemaining} day(s).`,
+      });
+    }
+
     // Hash the password with bcrypt (slow hash, cost factor 12)
     const passwordHash = await hashPassword(password);
 
@@ -134,10 +148,21 @@ const login = async (req, res, next) => {
 
     const DUMMY_HASH = '$2a$12$x'.padEnd(60, '0');
 
-    const user = await User.findOne({ email });
+    // Use withDeleted to find soft-deleted users (AUTH-05 grace-period restoration)
+    const user = await User.findOne({ email }).setOptions({ withDeleted: true });
 
     // Security doc §7: identical error for invalid email AND invalid password
     if (!user) {
+      await comparePassword(password, DUMMY_HASH);
+      return res.status(401).json({
+        success: false,
+        data: null,
+        error: 'Invalid email or password',
+      });
+    }
+
+    // Soft-deleted accounts are hidden from login (no restoration via login — use DELETE /me restore endpoint)
+    if (user.deletedAt) {
       await comparePassword(password, DUMMY_HASH);
       return res.status(401).json({
         success: false,
@@ -250,8 +275,8 @@ const refresh = async (req, res, next) => {
     await storedToken.save();
 
     // Look up the user to issue a fresh access token
-    const user = await User.findById(storedToken.userId);
-    if (!user || !user.isActive) {
+    const user = await User.findById(storedToken.userId).setOptions({ withDeleted: true });
+    if (!user || !user.isActive || user.deletedAt) {
       res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS);
       return res.status(401).json({
         success: false,

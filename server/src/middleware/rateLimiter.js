@@ -39,8 +39,18 @@ const forgotPasswordLimiter = rateLimit({
   message: { success: false, data: null, error: 'Too many password reset requests, please try again after 15 minutes' },
 });
 
+// Rate limiter for account deletion — destructive action, conservative limit
+const deleteAccountLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Max 3 deletion attempts per IP per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, error: 'Too many deletion requests, please try again later' },
+});
+
 limiter.signupLimiter = signupLimiter;
 limiter.loginLimiter = loginLimiter;
 limiter.forgotPasswordLimiter = forgotPasswordLimiter;
+limiter.deleteAccountLimiter = deleteAccountLimiter;
 
 module.exports = limiter;
