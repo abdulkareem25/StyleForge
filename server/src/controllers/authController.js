@@ -210,12 +210,139 @@ const login = async (req, res, next) => {
   }
 };
 
+// ── Helper: clear refresh-token cookie ─────────────────────────────────
+const CLEAR_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'none',
+  path: '/',
+  expires: new Date(0), // epoch — tells browser to delete immediately
+};
+
+// ── Refresh (token rotation per TAD §10) ──────────────────────────────
+const refresh = async (req, res, next) => {
+  try {
+    const rawToken = req.cookies?.refreshToken;
+
+    if (!rawToken) {
+      return res.status(401).json({
+        success: false,
+        data: null,
+        error: 'Refresh token not found',
+      });
+    }
+
+    const tokenHash = hashVerificationToken(rawToken);
+    const storedToken = await RefreshToken.findOne({ tokenHash });
+
+    // Fail closed: missing, revoked, or expired → reject
+    if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
+      res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS);
+      return res.status(401).json({
+        success: false,
+        data: null,
+        error: 'Invalid or expired refresh token',
+      });
+    }
+
+    // Revoke the old token immediately (rotation — TAD §10)
+    storedToken.revoked = true;
+    await storedToken.save();
+
+    // Look up the user to issue a fresh access token
+    const user = await User.findById(storedToken.userId);
+    if (!user || !user.isActive) {
+      res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS);
+      return res.status(401).json({
+        success: false,
+        data: null,
+        error: 'User not found or deactivated',
+      });
+    }
+
+    // Issue new access token
+    const accessToken = generateAccessToken({ id: user._id, email: user.email });
+
+    // Issue new refresh token (preserve original expiry window so
+    // "remember me" preference survives across rotations)
+    const { rawToken: newRaw, tokenHash: newHash } = generateRefreshToken();
+    const daysRemaining = Math.ceil(
+      (storedToken.expiresAt - storedToken.createdAt) / (24 * 60 * 60 * 1000),
+    );
+    const newExpiresAt = new Date(Date.now() + daysRemaining * 24 * 60 * 60 * 1000);
+
+    await RefreshToken.create({
+      userId: user._id,
+      tokenHash: newHash,
+      expiresAt: newExpiresAt,
+      deviceInfo: storedToken.deviceInfo,
+    });
+
+    // Set new httpOnly cookie
+    res.cookie('refreshToken', newRaw, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+      expires: newExpiresAt,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { accessToken },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Logout (this device — revoke the current session's token) ─────────
+const logout = async (req, res, next) => {
+  try {
+    const rawToken = req.cookies?.refreshToken;
+
+    if (rawToken) {
+      const tokenHash = hashVerificationToken(rawToken);
+      await RefreshToken.findOneAndUpdate({ tokenHash }, { revoked: true });
+    }
+
+    res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS);
+
+    res.status(200).json({
+      success: true,
+      data: { message: 'Logged out successfully' },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Logout everywhere (revoke ALL refresh tokens for this user) ───────
+const logoutEverywhere = async (req, res, next) => {
+  try {
+    await RefreshToken.deleteMany({ userId: req.user.id });
+
+    res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS);
+
+    res.status(200).json({
+      success: true,
+      data: { message: 'Logged out from all devices' },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   signup,
   verifyEmail,
   login,
-  refresh: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
-  logout: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
+  refresh,
+  logout,
+  logoutEverywhere,
   forgotPassword: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
   resetPassword: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
 };
