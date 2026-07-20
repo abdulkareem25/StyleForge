@@ -446,6 +446,48 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+// ── Change password (authenticated, re-authenticates with current) ────
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: 'User not found',
+      });
+    }
+
+    const isMatch = await comparePassword(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        data: null,
+        error: 'Current password is incorrect',
+      });
+    }
+
+    user.passwordHash = await hashPassword(newPassword);
+    await user.save();
+
+    // Credential change → force re-login everywhere (Security doc §1)
+    await RefreshToken.deleteMany({ userId });
+
+    res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS);
+
+    res.status(200).json({
+      success: true,
+      data: { message: 'Password changed successfully. Please log in again.' },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   signup,
   verifyEmail,
@@ -455,4 +497,5 @@ module.exports = {
   logoutEverywhere,
   forgotPassword,
   resetPassword,
+  changePassword,
 };

@@ -7,6 +7,7 @@ import Wardrobe from './pages/Wardrobe'
 import GenerateOutfit from './pages/GenerateOutfit'
 import History from './pages/History'
 import Preferences from './pages/Preferences'
+import AccountSecurity from './pages/AccountSecurity'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/generate" element={<GenerateOutfit />} />
         <Route path="/history" element={<History />} />
         <Route path="/preferences" element={<Preferences />} />
+        <Route path="/account/security" element={<AccountSecurity />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
