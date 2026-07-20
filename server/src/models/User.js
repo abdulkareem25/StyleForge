@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema({
   emailVerified: { type: Boolean, default: false },
   verificationToken: { type: String, default: null },
   verificationTokenExpiry: { type: Date, default: null },
+  passwordResetToken: { type: String, default: null },
+  passwordResetExpiry: { type: Date, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

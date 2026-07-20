@@ -7,7 +7,7 @@ const {
   generateVerificationToken,
   hashVerificationToken,
 } = require('../utils/tokenUtils');
-const { sendVerificationEmail } = require('../services/emailService');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../services/emailService');
 
 const signup = async (req, res, next) => {
   try {
@@ -336,6 +336,91 @@ const logoutEverywhere = async (req, res, next) => {
   }
 };
 
+// ── Forgot password (Security doc §1, §7 — identical response either way) ─
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    // Always return the same response to prevent account enumeration
+    const genericResponse = {
+      success: true,
+      data: { message: 'If that email exists, we\'ve sent a reset link.' },
+      error: null,
+    };
+
+    const user = await User.findOne({ email });
+
+    if (user) {
+      // Invalidate any previous reset token (single-use: new request replaces old)
+      const rawToken = generateVerificationToken();
+      const hashedToken = hashVerificationToken(rawToken);
+
+      const expiryMinutes = parseInt(process.env.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES, 10) || 60;
+      const passwordResetExpiry = new Date(Date.now() + expiryMinutes * 60 * 1000);
+
+      user.passwordResetToken = hashedToken;
+      user.passwordResetExpiry = passwordResetExpiry;
+      await user.save();
+
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+      const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
+
+      // Best-effort email — don't leak timing or failure info
+      try {
+        await sendPasswordResetEmail(user.email, user.name, resetUrl);
+      } catch {
+        // Swallow email errors — generic response regardless
+      }
+    }
+
+    // Identical response whether user exists or not
+    res.status(200).json(genericResponse);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Reset password (single-use token, invalidates all refresh tokens) ─
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+
+    const hashedToken = hashVerificationToken(token);
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpiry: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Invalid or expired reset token',
+      });
+    }
+
+    // Update password
+    user.passwordHash = await hashPassword(password);
+
+    // Clear reset token fields (single-use)
+    user.passwordResetToken = null;
+    user.passwordResetExpiry = null;
+    await user.save();
+
+    // Credential change → force re-login everywhere (Security doc §1)
+    await RefreshToken.deleteMany({ userId: user._id });
+
+    res.status(200).json({
+      success: true,
+      data: { message: 'Password reset successful. Please log in with your new password.' },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   signup,
   verifyEmail,
@@ -343,6 +428,6 @@ module.exports = {
   refresh,
   logout,
   logoutEverywhere,
-  forgotPassword: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
-  resetPassword: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
+  forgotPassword,
+  resetPassword,
 };

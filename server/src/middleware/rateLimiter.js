@@ -30,7 +30,17 @@ const loginLimiter = rateLimit({
   message: { success: false, data: null, error: 'Too many login attempts, please try again after 15 minutes' },
 });
 
+// Stricter limiter for forgot-password — AUTH-04, email-sending endpoint abuse prevention
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Max 5 forgot-password attempts per IP per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, error: 'Too many password reset requests, please try again after 15 minutes' },
+});
+
 limiter.signupLimiter = signupLimiter;
 limiter.loginLimiter = loginLimiter;
+limiter.forgotPasswordLimiter = forgotPasswordLimiter;
 
 module.exports = limiter;
