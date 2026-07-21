@@ -9,6 +9,10 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const checkAuth = async () => {
+      if (!localStorage.getItem('accessToken')) {
+        setLoading(false);
+        return;
+      }
       try {
         const { data } = await api.get('/users/me');
         if (data.success) setUser(data.data);
