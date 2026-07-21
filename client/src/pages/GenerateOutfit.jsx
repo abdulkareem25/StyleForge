@@ -57,8 +57,17 @@ export default function GenerateOutfit() {
 
   const handleGenerate = () => {
     if (!canGenerate) return;
+
+    const payload = {
+      occasion: selectedOccasion === 'custom' ? customValidation.value : selectedOccasion,
+      weather,
+    };
+
     setIsGenerating(true);
-    window.setTimeout(() => setIsGenerating(false), 1200);
+    window.setTimeout(() => {
+      setIsGenerating(false);
+      console.info('[mock] POST /outfits/generate', payload);
+    }, 1200);
   };
 
   if (isGenerating) {
@@ -148,12 +157,12 @@ export default function GenerateOutfit() {
 
           <div className="flex flex-col gap-3">
             <p className="text-caption font-medium uppercase tracking-[0.2em] text-ink/60">Weather</p>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+            <div className="flex w-full flex-col gap-2 sm:flex-row">
               {WEATHER_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  className={`w-full rounded-card border px-3 py-2 text-body font-medium transition-colors ${weather === option.value ? 'border-indigo bg-indigo text-white' : 'border-line bg-surface text-ink hover:border-indigo/40'}`}
+                  className={`flex-1 rounded-card border px-3 py-2 text-body font-medium transition-colors ${weather === option.value ? 'border-indigo bg-indigo text-white' : 'border-line bg-surface text-ink hover:border-indigo/40'}`}
                   onClick={() => setWeather(option.value)}
                 >
                   {option.label}
