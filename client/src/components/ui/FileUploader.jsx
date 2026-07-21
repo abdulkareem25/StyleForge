@@ -41,6 +41,7 @@ export default function FileUploader({
   maxFiles = 20,
   onFilesSelected,
   onFileRemove,
+  onRetry,
   files = [],
   uploading = false,
   error = null,
@@ -180,7 +181,21 @@ export default function FileUploader({
                   </div>
                 )}
                 {file.status === 'error' && (
-                  <p className="text-caption text-brick">Upload failed</p>
+                  <div className="mt-1 flex flex-col gap-1">
+                    <p className="text-caption text-brick">{file.error || 'Upload failed'}</p>
+                    {onRetry && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onRetry(i)
+                        }}
+                        className="text-caption text-indigo hover:underline self-start"
+                      >
+                        Retry upload
+                      </button>
+                    )}
+                  </div>
                 )}
                 {file.status === 'done' && (
                   <p className="text-caption text-brass">Uploaded</p>
@@ -189,7 +204,10 @@ export default function FileUploader({
               {onFileRemove && (
                 <button
                   type="button"
-                  onClick={() => onFileRemove(i)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onFileRemove(i)
+                  }}
                   className="p-1 text-ink/40 hover:text-brick rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo"
                   aria-label={`Remove ${file.name}`}
                 >

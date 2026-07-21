@@ -88,7 +88,7 @@ test('create whitelists client-editable fields and keeps server-controlled value
     },
   };
   const res = createMockRes();
-  const next = () => {};
+  const next = () => { };
 
   await wardrobeController.create(req, res, next);
 

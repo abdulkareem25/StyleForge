@@ -4,6 +4,7 @@ import { Button, Card, Chip, Drawer, SkeletonGrid } from '../components/ui'
 import { useToast } from '../components/ui/Toast'
 import { getWardrobe, getWardrobeColors } from '../services/wardrobeService'
 import WardrobeFilterPanel from '../components/wardrobe/WardrobeFilterPanel'
+import BatchUploadWidget from '../components/wardrobe/BatchUploadWidget'
 
 const INITIAL_FILTERS = { category: undefined, color: undefined, formalityTag: undefined, isActive: 'true', search: undefined }
 
@@ -36,7 +37,7 @@ function ActiveFiltersBar({ filters, onRemove, onClearAll }) {
   )
 }
 
-function EmptyState({ hasFilters }) {
+function EmptyState({ hasFilters, onUploadStart }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
       <div className="w-16 h-16 rounded-full bg-canvas flex items-center justify-center">
@@ -53,7 +54,7 @@ function EmptyState({ hasFilters }) {
         </p>
       </div>
       {!hasFilters && (
-        <Button icon={Upload} onClick={() => {}}>
+        <Button icon={Upload} onClick={onUploadStart}>
           Upload your first item
         </Button>
       )}
@@ -101,6 +102,8 @@ export default function Wardrobe() {
   const [loading, setLoading] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [availableColors, setAvailableColors] = useState([])
+  const [showUploadWidget, setShowUploadWidget] = useState(false)
+  const [uploadSummary, setUploadSummary] = useState(null)
   const toast = useToast()
 
   const activeFilterCount = useMemo(() => {
@@ -167,6 +170,14 @@ export default function Wardrobe() {
     setPage(1)
   }, [])
 
+  const handleUploadReady = useCallback((items) => {
+    setShowUploadWidget(false)
+    if (items.length > 0) {
+      setUploadSummary(`${items.length} photo${items.length === 1 ? '' : 's'} ready to review.`)
+      toast.success(`${items.length} photo${items.length === 1 ? '' : 's'} uploaded.`)
+    }
+  }, [toast])
+
   const filterTrigger = (
     <button
       type="button"
@@ -203,9 +214,9 @@ export default function Wardrobe() {
           <div className="px-4 py-3 flex items-center gap-3">
             {filterTrigger}
             <h1 className="text-h1 font-display text-ink flex-1">Wardrobe</h1>
-            <span className="text-caption text-ink/50">
-              {total} item{total !== 1 ? 's' : ''}
-            </span>
+            <Button variant="secondary" size="sm" icon={Upload} onClick={() => setShowUploadWidget(true)}>
+              Upload
+            </Button>
           </div>
           <ActiveFiltersBar
             filters={filters}
@@ -216,10 +227,29 @@ export default function Wardrobe() {
 
         {/* Content */}
         <main className="flex-1 px-4 py-6">
+          {uploadSummary && (
+            <div className="mb-4 rounded-card border border-brass/30 bg-brass/5 px-4 py-3 text-caption text-ink/70">
+              {uploadSummary}
+            </div>
+          )}
+          {showUploadWidget && (
+            <div className="mb-6 rounded-card border border-line bg-surface p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <h2 className="text-h2 font-display text-ink">Upload wardrobe photos</h2>
+                  <p className="text-body text-ink/60">Drag files in or tap to browse. Each file uploads independently, and failures stay isolated to that row.</p>
+                </div>
+                <Button variant="tertiary" size="sm" onClick={() => setShowUploadWidget(false)}>
+                  Close
+                </Button>
+              </div>
+              <BatchUploadWidget onItemsReady={handleUploadReady} onProgressChange={() => {}} />
+            </div>
+          )}
           {loading ? (
             <SkeletonGrid count={8} />
           ) : items.length === 0 ? (
-            <EmptyState hasFilters={activeFilterCount > 0} />
+            <EmptyState hasFilters={activeFilterCount > 0} onUploadStart={() => setShowUploadWidget(true)} />
           ) : (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { FileUploader } from '../ui'
 import { getUploadAuth } from '../../services/wardrobeService'
 import compressImage from '../../utils/compressImage'
+import { validateImageFile } from '../../utils/fileValidation'
 
 const ACCEPT = 'image/jpeg,image/png,image/webp'
 const MAX_FILES = 20
@@ -71,6 +72,7 @@ export default function BatchUploadWidget({ onItemsReady, onProgressChange }) {
   const [uploading, setUploading] = useState(false)
   const [overallError, setOverallError] = useState(null)
   const abortRef = useRef(false)
+  const uploadAuthRef = useRef(null)
 
   const notifyProgress = useCallback(
     (fileList) => {
@@ -102,11 +104,13 @@ export default function BatchUploadWidget({ onItemsReady, onProgressChange }) {
       setFiles(fileList)
       notifyProgress(fileList)
 
-      let auth = null
+      let auth = uploadAuthRef.current
       try {
-        auth = await getUploadAuthCached()
+        if (!auth) {
+          auth = await getUploadAuthCached()
+          uploadAuthRef.current = auth
+        }
       } catch {
-        // Backend not ready — mark all as error with guidance
         const updated = fileList.map((f) => ({
           ...f,
           status: 'error',
@@ -125,11 +129,20 @@ export default function BatchUploadWidget({ onItemsReady, onProgressChange }) {
         if (abortRef.current) break
 
         const item = fileList[i]
+        const validation = await validateImageFile(item.rawFile)
+        if (!validation.valid) {
+          setFiles((prev) => {
+            const next = [...prev]
+            next[i] = { ...next[i], status: 'error', error: validation.error }
+            notifyProgress(next)
+            return next
+          })
+          continue
+        }
 
-        // Compress
         setFiles((prev) => {
           const next = [...prev]
-          next[i] = { ...next[i], status: 'compressing', progress: 0 }
+          next[i] = { ...next[i], status: 'compressing', progress: 0, error: null }
           notifyProgress(next)
           return next
         })
@@ -149,10 +162,9 @@ export default function BatchUploadWidget({ onItemsReady, onProgressChange }) {
 
         if (abortRef.current) break
 
-        // Upload
         setFiles((prev) => {
           const next = [...prev]
-          next[i] = { ...next[i], status: 'uploading', progress: 0 }
+          next[i] = { ...next[i], status: 'uploading', progress: 0, error: null }
           notifyProgress(next)
           return next
         })
@@ -174,6 +186,7 @@ export default function BatchUploadWidget({ onItemsReady, onProgressChange }) {
               progress: 100,
               imageUrl: result.imageUrl,
               thumbnailUrl: result.thumbnailUrl,
+              error: null,
             }
             notifyProgress(next)
             return next
@@ -218,6 +231,18 @@ export default function BatchUploadWidget({ onItemsReady, onProgressChange }) {
     [uploading],
   )
 
+  const handleRetry = useCallback(
+    (index) => {
+      setFiles((prev) => {
+        const next = [...prev]
+        next[index] = { ...next[index], status: 'queued', progress: 0, error: null }
+        return next
+      })
+      uploadBatch(files.filter((_, i) => i === index).map((f) => f.rawFile))
+    },
+    [files, uploadBatch],
+  )
+
   return (
     <div className="flex flex-col gap-4">
       <FileUploader
@@ -229,6 +254,7 @@ export default function BatchUploadWidget({ onItemsReady, onProgressChange }) {
         error={overallError}
         onFilesSelected={handleFilesSelected}
         onFileRemove={handleFileRemove}
+        onRetry={handleRetry}
       />
     </div>
   )
