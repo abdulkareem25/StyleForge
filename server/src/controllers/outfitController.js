@@ -89,5 +89,64 @@ module.exports = {
   generate,
   wear,
   favorite: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
-  history: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
+  history: async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      const { page = 1, limit = 20, occasion } = req.query;
+
+      const filter = { userId };
+      if (occasion) filter.occasionTag = occasion;
+
+      const skip = (page - 1) * limit;
+
+      const [entries, total] = await Promise.all([
+        OutfitHistory.find(filter)
+          .sort({ wornDate: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate({
+            path: 'outfitId',
+            select: 'itemIds',
+            populate: { path: 'itemIds', select: 'category subCategory primaryColor secondaryColor imageUrl thumbnailUrl' },
+          })
+          .lean(),
+        OutfitHistory.countDocuments(filter),
+      ]);
+
+      const history = entries.map((entry) => ({
+        id: entry._id,
+        wornDate: entry.wornDate,
+        occasionTag: entry.occasionTag,
+        weatherContext: entry.weatherContext,
+        outfit: entry.outfitId
+          ? {
+              id: entry.outfitId._id,
+              items: (entry.outfitId.itemIds || []).map((item) => ({
+                id: item._id,
+                category: item.category,
+                subCategory: item.subCategory,
+                primaryColor: item.primaryColor,
+                secondaryColor: item.secondaryColor,
+                imageUrl: item.imageUrl,
+                thumbnailUrl: item.thumbnailUrl,
+              })),
+            }
+          : null,
+      }));
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          history,
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+        },
+        error: null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };
