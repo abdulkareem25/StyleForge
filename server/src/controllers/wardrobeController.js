@@ -160,7 +160,7 @@ const create = async (req, res, next) => {
       pattern: payload.pattern || taggingResult.pattern,
       formalityTags: Array.isArray(payload.formalityTags) ? payload.formalityTags : (taggingResult.formalityTags || []),
       seasonTags: Array.isArray(payload.seasonTags) ? payload.seasonTags : (taggingResult.seasonTags || []),
-      isActive: true,
+      isActive: false,
       userCorrected: false,
       aiTagConfidence: taggingResult.aiTagConfidence ?? 0,
     });
@@ -192,8 +192,77 @@ const create = async (req, res, next) => {
   }
 };
 
-const update = async (req, res) => {
-  res.status(501).json({ success: false, data: null, error: 'Not implemented' });
+const update = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const itemId = req.params.id;
+    const allowedFields = [
+      'category',
+      'subCategory',
+      'sleeveLength',
+      'fit',
+      'primaryColor',
+      'secondaryColor',
+      'pattern',
+      'formalityTags',
+      'seasonTags',
+      'isActive',
+      'userCorrected',
+    ];
+
+    const payload = {};
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        payload[field] = req.body[field];
+      }
+    });
+
+    const correctionFields = ['category', 'subCategory', 'sleeveLength', 'fit', 'primaryColor', 'secondaryColor', 'pattern', 'formalityTags', 'seasonTags'];
+    const hasCorrection = correctionFields.some((field) => Object.prototype.hasOwnProperty.call(payload, field));
+
+    if (hasCorrection) {
+      payload.userCorrected = true;
+      payload.isActive = true;
+    }
+
+    const existingItem = await WardrobeItem.findById(itemId);
+    if (!existingItem || existingItem.userId.toString() !== userId) {
+      return res.status(404).json({ success: false, data: null, error: 'Wardrobe item not found' });
+    }
+
+    const item = await WardrobeItem.findByIdAndUpdate(
+      itemId,
+      { $set: payload },
+      { new: true, runValidators: true },
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        item: {
+          id: item._id,
+          imageUrl: item.imageUrl,
+          thumbnailUrl: item.thumbnailUrl,
+          category: item.category,
+          subCategory: item.subCategory,
+          sleeveLength: item.sleeveLength,
+          fit: item.fit,
+          primaryColor: item.primaryColor,
+          secondaryColor: item.secondaryColor,
+          pattern: item.pattern,
+          formalityTags: item.formalityTags,
+          seasonTags: item.seasonTags,
+          isActive: item.isActive,
+          userCorrected: item.userCorrected,
+          aiTagConfidence: item.aiTagConfidence,
+          createdAt: item.createdAt,
+        },
+      },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const remove = async (req, res) => {

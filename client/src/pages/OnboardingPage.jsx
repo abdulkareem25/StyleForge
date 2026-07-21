@@ -1,13 +1,14 @@
-import { useState, useCallback } from 'react'
+import { ArrowLeft, Shirt, Sparkles } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sparkles, Shirt, ArrowLeft } from 'lucide-react'
+import StylePreferencesForm from '../components/onboarding/StylePreferencesForm'
 import { Button } from '../components/ui'
 import { useToast } from '../components/ui/Toast'
-import { useAuth } from '../context/AuthContext'
-import { updatePreferences } from '../services/userService'
-import StylePreferencesForm from '../components/onboarding/StylePreferencesForm'
 import BatchUploadWidget from '../components/wardrobe/BatchUploadWidget'
 import TagReviewPanel from '../components/wardrobe/TagReviewPanel'
+import { useAuth } from '../context/AuthContext'
+import { updatePreferences } from '../services/userService'
+import { createWardrobeItem, updateWardrobeItem } from '../services/wardrobeService'
 
 const TOTAL_STEPS = 2
 
@@ -21,21 +22,19 @@ function StepIndicator({ current, total }) {
         return (
           <div key={stepNum} className="flex items-center gap-2">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-caption font-medium transition-colors duration-200 ${
-                isDone
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-caption font-medium transition-colors duration-200 ${isDone
                   ? 'bg-indigo text-white'
                   : isActive
                     ? 'bg-indigo/10 text-indigo ring-2 ring-indigo'
                     : 'bg-canvas text-ink/40 border border-line'
-              }`}
+                }`}
             >
               {isDone ? '✓' : stepNum}
             </div>
             {i < total - 1 && (
               <div
-                className={`w-8 h-0.5 rounded-full transition-colors duration-200 ${
-                  isDone ? 'bg-indigo' : 'bg-line'
-                }`}
+                className={`w-8 h-0.5 rounded-full transition-colors duration-200 ${isDone ? 'bg-indigo' : 'bg-line'
+                  }`}
               />
             )}
           </div>
@@ -53,6 +52,7 @@ export default function OnboardingPage() {
   const [prefLoading, setPrefLoading] = useState(false)
   const [uploadedItems, setUploadedItems] = useState([])
   const [uploadCount, setUploadCount] = useState(0)
+  const [reviewedCount, setReviewedCount] = useState(0)
   const navigate = useNavigate()
   const { setUser } = useAuth()
   const toast = useToast()
@@ -95,11 +95,46 @@ export default function OnboardingPage() {
   }, [])
 
   const handleItemsConfirmed = useCallback(
-    (confirmedItems) => {
-      toast.success(`${confirmedItems.length} item${confirmedItems.length !== 1 ? 's' : ''} added to wardrobe!`)
-      goToDashboard()
+    async (confirmedItems) => {
+      for (const item of confirmedItems) {
+        const created = await createWardrobeItem({
+          imageUrl: item.imageUrl,
+          thumbnailUrl: item.thumbnailUrl,
+          category: item.category,
+          subCategory: item.subCategory,
+          sleeveLength: item.sleeveLength,
+          fit: item.fit,
+          primaryColor: item.primaryColor,
+          secondaryColor: item.secondaryColor,
+          pattern: item.pattern,
+          formalityTags: item.formalityTags,
+          seasonTags: item.seasonTags,
+        })
+
+        await updateWardrobeItem(created.data.data.item.id, {
+          category: item.category,
+          subCategory: item.subCategory,
+          sleeveLength: item.sleeveLength,
+          fit: item.fit,
+          primaryColor: item.primaryColor,
+          secondaryColor: item.secondaryColor,
+          pattern: item.pattern,
+          formalityTags: item.formalityTags,
+          seasonTags: item.seasonTags,
+          userCorrected: true,
+        })
+      }
+
+      setReviewedCount((prev) => {
+        const next = prev + confirmedItems.length
+        if (next >= uploadedItems.length) {
+          toast.success(`${confirmedItems.length} item${confirmedItems.length !== 1 ? 's' : ''} added to wardrobe!`)
+          goToDashboard()
+        }
+        return next
+      })
     },
-    [toast, goToDashboard],
+    [toast, goToDashboard, uploadedItems.length],
   )
 
   const handleUploadSkip = useCallback(() => {
@@ -164,7 +199,7 @@ export default function OnboardingPage() {
             <div className="w-full">
               <BatchUploadWidget
                 onItemsReady={handleItemsReady}
-                onProgressChange={() => {}}
+                onProgressChange={() => { }}
               />
             </div>
             <Button variant="tertiary" size="full" onClick={handleUploadSkip}>

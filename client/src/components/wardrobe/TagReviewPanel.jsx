@@ -1,14 +1,14 @@
-import { useState, useCallback } from 'react'
 import { AlertTriangle, Check } from 'lucide-react'
-import { Button, Select, Chip } from '../ui'
+import { useCallback, useEffect, useState } from 'react'
 import {
   categories,
-  subCategories,
   fits,
-  sleeveLengths,
   patterns,
+  sleeveLengths,
+  subCategories,
 } from '../../constants/categories'
 import { occasions } from '../../constants/occasions'
+import { Button, Chip, Select } from '../ui'
 
 const FIT_OPTIONS = fits.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))
 
@@ -45,7 +45,7 @@ function getInitialTags(item) {
   }
 }
 
-function ItemCard({ item, index, tags, onChange, onConfirm }) {
+function ItemCard({ item, index, tags, onChange, onConfirm, saving, confirmed }) {
   const lowConfidence = item.aiTagConfidence != null && item.aiTagConfidence < 0.6
   const subCategoryOptions = tags.category
     ? (subCategories[tags.category] || []).map((s) => ({ value: s, label: s.replace(/-/g, ' ') }))
@@ -83,7 +83,7 @@ function ItemCard({ item, index, tags, onChange, onConfirm }) {
   )
 
   return (
-    <div className="bg-surface border border-line rounded-card overflow-hidden">
+    <div className={`bg-surface border rounded-card overflow-hidden transition-all ${lowConfidence ? 'border-brass/60 bg-brass/5' : 'border-line'}`}>
       <div className="flex flex-col sm:flex-row">
         {/* Image */}
         <div className="sm:w-40 h-48 sm:h-auto flex-shrink-0 bg-canvas">
@@ -100,12 +100,19 @@ function ItemCard({ item, index, tags, onChange, onConfirm }) {
             <h3 className="text-body font-medium text-ink truncate">
               {item.fileName || `Item ${index + 1}`}
             </h3>
-            {lowConfidence && (
-              <span className="flex items-center gap-1 text-caption text-brass">
-                <AlertTriangle size={12} strokeWidth={1.5} />
-                Low confidence
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {lowConfidence && (
+                <span className="flex items-center gap-1 rounded-full border border-brass/30 bg-brass/10 px-2 py-1 text-caption font-medium text-brass">
+                  <AlertTriangle size={12} strokeWidth={1.5} />
+                  Low confidence
+                </span>
+              )}
+              {confirmed && (
+                <span className="rounded-full border border-indigo/20 bg-indigo/10 px-2 py-1 text-caption font-medium text-indigo">
+                  Saved
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -147,20 +154,24 @@ function ItemCard({ item, index, tags, onChange, onConfirm }) {
             />
           </div>
 
-          {/* Primary Color */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-caption text-ink">Primary color</label>
-            <div className="flex flex-wrap gap-1.5">
-              {COLOR_PRESETS.map((c) => (
-                <Chip
-                  key={c}
-                  interactive
-                  selected={tags.primaryColor === c.toLowerCase()}
-                  onClick={() => update('primaryColor', tags.primaryColor === c.toLowerCase() ? '' : c.toLowerCase())}
-                >
-                  {c}
-                </Chip>
-              ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-caption text-ink">Primary color</label>
+              <input
+                className="rounded-input border border-line bg-white px-3 py-2 text-body text-ink outline-none focus:border-indigo"
+                value={tags.primaryColor}
+                onChange={(e) => update('primaryColor', e.target.value)}
+                placeholder="e.g. navy"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-caption text-ink">Secondary color</label>
+              <input
+                className="rounded-input border border-line bg-white px-3 py-2 text-body text-ink outline-none focus:border-indigo"
+                value={tags.secondaryColor}
+                onChange={(e) => update('secondaryColor', e.target.value)}
+                placeholder="e.g. white"
+              />
             </div>
           </div>
 
@@ -204,8 +215,9 @@ function ItemCard({ item, index, tags, onChange, onConfirm }) {
             icon={Check}
             onClick={() => onConfirm(index)}
             className="self-start mt-1"
+            disabled={saving}
           >
-            Confirm tags
+            {saving ? 'Saving…' : 'Save corrections'}
           </Button>
         </div>
       </div>
@@ -218,6 +230,7 @@ export default function TagReviewPanel({ items, onItemsConfirmed, onSkip }) {
     items.map((item) => getInitialTags(item)),
   )
   const [confirmed, setConfirmed] = useState(() => new Set())
+  const [savingIndex, setSavingIndex] = useState(null)
 
   const handleChange = useCallback((index, tags) => {
     setTagsMap((prev) => {
@@ -227,33 +240,47 @@ export default function TagReviewPanel({ items, onItemsConfirmed, onSkip }) {
     })
   }, [])
 
-  const handleConfirm = useCallback(
-    (index) => {
-      setConfirmed((prev) => {
-        const next = new Set(prev)
-        next.add(index)
-        return next
-      })
+  useEffect(() => {
+    setTagsMap(items.map((item) => getInitialTags(item)))
+    setConfirmed(new Set())
+    setSavingIndex(null)
+  }, [items])
 
-      if (confirmed.size + 1 === items.length && onItemsConfirmed) {
-        const results = items.map((item, i) => ({
-          ...item,
-          ...tagsMap[i],
-          userCorrected: true,
-        }))
-        onItemsConfirmed(results)
+  const handleConfirm = useCallback(
+    async (index) => {
+      const result = {
+        ...items[index],
+        ...tagsMap[index],
+        userCorrected: true,
+      }
+
+      setSavingIndex(index)
+      try {
+        if (onItemsConfirmed) {
+          await onItemsConfirmed([result])
+        }
+        setConfirmed((prev) => {
+          const next = new Set(prev)
+          next.add(index)
+          return next
+        })
+      } finally {
+        setSavingIndex(null)
       }
     },
-    [items, tagsMap, confirmed.size, onItemsConfirmed],
+    [items, tagsMap, onItemsConfirmed],
   )
 
-  const handleConfirmAll = useCallback(() => {
+  const handleConfirmAll = useCallback(async () => {
     const results = items.map((item, i) => ({
       ...item,
       ...tagsMap[i],
       userCorrected: true,
     }))
-    if (onItemsConfirmed) onItemsConfirmed(results)
+    if (onItemsConfirmed) {
+      await onItemsConfirmed(results)
+      setConfirmed(new Set(items.map((_, i) => i)))
+    }
   }, [items, tagsMap, onItemsConfirmed])
 
   return (
@@ -273,10 +300,10 @@ export default function TagReviewPanel({ items, onItemsConfirmed, onSkip }) {
           )}
           <Button
             size="sm"
-            disabled={items.length === 0}
+            disabled={items.length === 0 || savingIndex !== null}
             onClick={handleConfirmAll}
           >
-            Confirm all
+            Save all
           </Button>
         </div>
       </div>
@@ -290,6 +317,8 @@ export default function TagReviewPanel({ items, onItemsConfirmed, onSkip }) {
             tags={tagsMap[i]}
             onChange={handleChange}
             onConfirm={handleConfirm}
+            saving={savingIndex === i}
+            confirmed={confirmed.has(i)}
           />
         ))}
       </div>
