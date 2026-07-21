@@ -31,6 +31,8 @@ const preferencesSchema = z.object({
   preferredColors: z.array(z.string().max(30)).max(10).optional(),
   fitPreference: z.enum(fitPreferences).optional(),
   printTolerance: z.enum(printTolerances).optional(),
+  remindersEnabled: z.boolean().optional(),
+  reminderTime: z.string().regex(/^\d{2}:\d{2}$/, 'Time must be in HH:MM format').nullable().optional(),
 });
 
 module.exports = {

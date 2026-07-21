@@ -5,6 +5,9 @@ const validateRequest = require('../middleware/validateRequest');
 const { preferencesSchema } = require('../validators/authValidators');
 const { deleteAccountLimiter } = require('../middleware/rateLimiter');
 
+// Public route — no auth required (unsubscribe link in emails)
+router.get('/unsubscribe-reminder', userController.unsubscribeReminder);
+
 router.use(authMiddleware);
 
 router.get('/me', userController.getMe);

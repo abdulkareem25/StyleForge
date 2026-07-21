@@ -4,6 +4,7 @@ const WardrobeItem = require('../models/WardrobeItem');
 const Outfit = require('../models/Outfit');
 const OutfitHistory = require('../models/OutfitHistory');
 const { deleteImages } = require('../services/imageService');
+const { generateVerificationToken } = require('../utils/tokenUtils');
 
 const CLEAR_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -141,12 +142,22 @@ const getMe = async (req, res, next) => {
 // ── Update the authenticated user's style preferences ────────────────
 const updatePreferences = async (req, res, next) => {
   try {
-    const { preferredColors, fitPreference, printTolerance } = req.body;
+    const { preferredColors, fitPreference, printTolerance, remindersEnabled, reminderTime } = req.body;
 
     const update = {};
     if (preferredColors !== undefined) update['stylePreferences.preferredColors'] = preferredColors;
     if (fitPreference !== undefined) update['stylePreferences.fitPreference'] = fitPreference;
     if (printTolerance !== undefined) update['stylePreferences.printTolerance'] = printTolerance;
+    if (remindersEnabled !== undefined) update['stylePreferences.remindersEnabled'] = remindersEnabled;
+    if (reminderTime !== undefined) update['stylePreferences.reminderTime'] = reminderTime;
+
+    // Generate unsubscribe token when enabling reminders for the first time
+    if (remindersEnabled === true) {
+      const user = await User.findById(req.user.id).select('stylePreferences.reminderUnsubToken');
+      if (user && !user.stylePreferences.reminderUnsubToken) {
+        update['stylePreferences.reminderUnsubToken'] = generateVerificationToken();
+      }
+    }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
@@ -164,10 +175,36 @@ const updatePreferences = async (req, res, next) => {
   }
 };
 
+// ── Unsubscribe from daily reminder (public, no auth required) ───────
+const unsubscribeReminder = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ success: false, data: null, error: 'Unsubscribe token is required' });
+    }
+
+    const user = await User.findOne({ 'stylePreferences.reminderUnsubToken': token });
+    if (!user) {
+      return res.status(404).json({ success: false, data: null, error: 'Invalid unsubscribe link' });
+    }
+
+    user.stylePreferences.remindersEnabled = false;
+    user.stylePreferences.reminderUnsubToken = null;
+    await user.save();
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    return res.redirect(`${clientUrl}/preferences?unsubscribed=true`);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getMe,
   updatePreferences,
   deleteAccount,
   restoreAccount,
   purgeExpiredDeletions,
+  unsubscribeReminder,
 };
