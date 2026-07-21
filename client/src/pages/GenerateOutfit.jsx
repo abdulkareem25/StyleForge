@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Chip, Input } from '../components/ui';
 import { CUSTOM_OCCASION_MAX_LENGTH, occasionGroups, validateCustomOccasion } from '../constants/occasions';
 
@@ -28,8 +28,11 @@ export default function GenerateOutfit() {
   const [selectedOccasion, setSelectedOccasion] = useState('');
   const [customOccasion, setCustomOccasion] = useState('');
   const [weather, setWeather] = useState('any');
+  const [weatherStatus, setWeatherStatus] = useState('detecting');
   const [showCustomField, setShowCustomField] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const manualWeatherSelectionRef = useRef(false);
 
   const customValidation = useMemo(() => validateCustomOccasion(customOccasion), [customOccasion]);
   const displayValue = useMemo(() => findSelectedOccasionLabel(selectedOccasion, customOccasion), [customOccasion, selectedOccasion]);
@@ -53,6 +56,56 @@ export default function GenerateOutfit() {
     setSelectedOccasion('custom');
     setCustomOccasion(customValidation.value);
     setShowCustomField(false);
+  };
+
+  useEffect(() => {
+    let isCancelled = false;
+    const weatherApiBaseUrl = import.meta.env.VITE_WEATHER_API_BASE_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+
+    if (!('geolocation' in navigator)) {
+      if (!isCancelled) setWeatherStatus('fallback');
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    setWeatherStatus('detecting');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const response = await fetch(`${weatherApiBaseUrl.replace(/\/$/, '')}/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}`, {
+            credentials: 'include',
+          });
+          const result = await response.json();
+
+          if (!isCancelled && result?.success && result.data?.weather && !manualWeatherSelectionRef.current) {
+            setWeather(result.data.weather);
+            setWeatherStatus('detected');
+          } else if (!isCancelled) {
+            setWeatherStatus(manualWeatherSelectionRef.current ? 'manual' : 'fallback');
+          }
+        } catch {
+          if (!isCancelled) setWeatherStatus('fallback');
+        }
+      },
+      (error) => {
+        if (!isCancelled) {
+          setWeatherStatus(error.code === 1 ? 'permission-denied' : 'fallback');
+        }
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
+    );
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  const handleWeatherSelect = (value) => {
+    setWeather(value);
+    manualWeatherSelectionRef.current = true;
+    setWeatherStatus('manual');
   };
 
   const handleGenerate = () => {
@@ -163,12 +216,19 @@ export default function GenerateOutfit() {
                   key={option.value}
                   type="button"
                   className={`flex-1 rounded-card border px-3 py-2 text-body font-medium transition-colors ${weather === option.value ? 'border-indigo bg-indigo text-white' : 'border-line bg-surface text-ink hover:border-indigo/40'}`}
-                  onClick={() => setWeather(option.value)}
+                  onClick={() => handleWeatherSelect(option.value)}
                 >
                   {option.label}
                 </button>
               ))}
             </div>
+            <p className="text-caption text-ink/60">
+              {weatherStatus === 'detecting' && 'Detecting your local weather...'}
+              {weatherStatus === 'detected' && 'Weather auto-detected for your location.'}
+              {weatherStatus === 'manual' && 'Using your manual weather selection.'}
+              {weatherStatus === 'permission-denied' && 'Location access was denied, so weather stays on manual selection.'}
+              {weatherStatus === 'fallback' && 'Weather detection is unavailable right now. You can still choose manually.'}
+            </p>
           </div>
 
           <Button size="lg" className="w-full sm:w-auto" disabled={!canGenerate} onClick={handleGenerate}>

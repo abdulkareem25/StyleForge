@@ -48,10 +48,12 @@ Copy `.env.example` to `.env` in both `server/` and `client/`, then fill in:
 - `GEMINI_API_KEY` — Google AI Studio API key
 - `IMAGEKIT_*` — ImageKit credentials
 - `BREVO_*` — Brevo API key and sender email
+- `WEATHER_API_KEY` — OpenWeather API key for automatic weather detection
 - `CLIENT_URL` — frontend URL (default: `http://localhost:5173`)
 
 **Client** (`client/.env`):
 - `VITE_API_BASE_URL` — backend API URL (default: `http://localhost:5000/api/v1`)
+- `VITE_WEATHER_API_BASE_URL` — weather endpoint base URL (defaults to the API base URL)
 - `VITE_IMAGEKIT_URL_ENDPOINT` — ImageKit URL endpoint
 
 ### 3. Run locally
