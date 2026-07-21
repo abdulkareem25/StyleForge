@@ -24,10 +24,10 @@ const FIT_OPTIONS = fitPreferences.map((v) => ({ value: v, label: v.charAt(0).to
 const PRINT_LABELS = { low: 'Mostly solid', medium: 'Mix of both', high: 'Love prints' }
 const PRINT_OPTIONS = printTolerances.map((v) => ({ value: v, label: PRINT_LABELS[v] || v }))
 
-export default function StylePreferencesForm({ onSubmit, onSkip, loading }) {
-  const [preferredColors, setPreferredColors] = useState([])
-  const [fitPreference, setFitPreference] = useState('')
-  const [printTolerance, setPrintTolerance] = useState('')
+export default function StylePreferencesForm({ onSubmit, onSkip, loading, initialValues }) {
+  const [preferredColors, setPreferredColors] = useState(initialValues?.preferredColors || [])
+  const [fitPreference, setFitPreference] = useState(initialValues?.fitPreference || '')
+  const [printTolerance, setPrintTolerance] = useState(initialValues?.printTolerance || '')
 
   const toggleColor = useCallback((color) => {
     setPreferredColors((prev) =>
