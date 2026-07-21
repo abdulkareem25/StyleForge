@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Palette, Shirt, Sparkles } from 'lucide-react'
 import { Button, Select, Chip } from '../ui'
+import { fitPreferences, printTolerances } from '../../constants/categories'
 
 const COLOR_OPTIONS = [
   { value: 'black', label: 'Black' },
@@ -18,18 +19,10 @@ const COLOR_OPTIONS = [
   { value: 'yellow', label: 'Yellow' },
 ]
 
-const FIT_OPTIONS = [
-  { value: 'regular', label: 'Regular' },
-  { value: 'slim', label: 'Slim' },
-  { value: 'oversized', label: 'Oversized' },
-  { value: 'relaxed', label: 'Relaxed' },
-]
+const FIT_OPTIONS = fitPreferences.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))
 
-const PRINT_OPTIONS = [
-  { value: 'low', label: 'Mostly solid' },
-  { value: 'medium', label: 'Mix of both' },
-  { value: 'high', label: 'Love prints' },
-]
+const PRINT_LABELS = { low: 'Mostly solid', medium: 'Mix of both', high: 'Love prints' }
+const PRINT_OPTIONS = printTolerances.map((v) => ({ value: v, label: PRINT_LABELS[v] || v }))
 
 export default function StylePreferencesForm({ onSubmit, onSkip, loading }) {
   const [preferredColors, setPreferredColors] = useState([])

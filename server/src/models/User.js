@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { fitPreferences, printTolerances } = require('../constants/categories');
 
 const GRACE_PERIOD_DAYS = 30;
 
@@ -8,8 +9,8 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   stylePreferences: {
     preferredColors: [{ type: String }],
-    fitPreference: { type: String, enum: ['regular', 'slim', 'oversized', 'relaxed'], default: 'regular' },
-    printTolerance: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+    fitPreference: { type: String, enum: fitPreferences, default: 'regular' },
+    printTolerance: { type: String, enum: printTolerances, default: 'medium' },
   },
   isActive: { type: Boolean, default: true },
   emailVerified: { type: Boolean, default: false },

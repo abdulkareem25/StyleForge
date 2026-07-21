@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { fitPreferences, printTolerances } = require('../constants/categories');
 
 const signupSchema = z.object({
   name: z.string({ error: 'Name is required' }).trim().min(1, 'Name is required').max(100),
@@ -28,8 +29,8 @@ const changePasswordSchema = z.object({
 
 const preferencesSchema = z.object({
   preferredColors: z.array(z.string().max(30)).max(10).optional(),
-  fitPreference: z.enum(['regular', 'slim', 'oversized', 'relaxed']).optional(),
-  printTolerance: z.enum(['low', 'medium', 'high']).optional(),
+  fitPreference: z.enum(fitPreferences).optional(),
+  printTolerance: z.enum(printTolerances).optional(),
 });
 
 module.exports = {

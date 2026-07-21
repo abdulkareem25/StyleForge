@@ -1,30 +1,23 @@
 import { useState, useCallback } from 'react'
 import { AlertTriangle, Check } from 'lucide-react'
 import { Button, Select, Chip } from '../ui'
-import { categories, subCategories } from '../../constants/categories'
+import {
+  categories,
+  subCategories,
+  fits,
+  sleeveLengths,
+  patterns,
+} from '../../constants/categories'
 import { occasions } from '../../constants/occasions'
 
-const FIT_OPTIONS = [
-  { value: 'regular', label: 'Regular' },
-  { value: 'slim', label: 'Slim' },
-  { value: 'oversized', label: 'Oversized' },
-  { value: 'relaxed', label: 'Relaxed' },
-]
+const FIT_OPTIONS = fits.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))
 
-const SLEEVE_OPTIONS = [
-  { value: 'full', label: 'Full' },
-  { value: 'half', label: 'Half' },
-  { value: 'sleeveless', label: 'Sleeveless' },
-  { value: 'n/a', label: 'N/A' },
-]
+const SLEEVE_OPTIONS = sleeveLengths.map((v) => ({
+  value: v,
+  label: v === 'n/a' ? 'N/A' : v.charAt(0).toUpperCase() + v.slice(1),
+}))
 
-const PATTERN_OPTIONS = [
-  { value: 'solid', label: 'Solid' },
-  { value: 'striped', label: 'Striped' },
-  { value: 'checked', label: 'Checked' },
-  { value: 'printed', label: 'Printed' },
-  { value: 'other', label: 'Other' },
-]
+const PATTERN_OPTIONS = patterns.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))
 
 const COLOR_PRESETS = [
   'Black', 'White', 'Navy', 'Grey', 'Brown', 'Beige',

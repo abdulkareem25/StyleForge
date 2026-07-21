@@ -1,11 +1,2 @@
-export const occasions = [
-  'casual',
-  'office',
-  'formal',
-  'ethnic',
-  'party',
-  'gym',
-  'travel',
-  'date',
-  'festival',
-];
+// Backward-compatible re-export — canonical source is categories.js
+export { formalityTags as occasions } from './categories';
