@@ -125,9 +125,48 @@ const restoreAccount = async (req, res, next) => {
   }
 };
 
+// ── Return the authenticated user's profile ──────────────────────────
+const getMe = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id).select('-passwordHash');
+    if (!user) {
+      return res.status(404).json({ success: false, data: null, error: 'User not found' });
+    }
+    res.status(200).json({ success: true, data: user, error: null });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Update the authenticated user's style preferences ────────────────
+const updatePreferences = async (req, res, next) => {
+  try {
+    const { preferredColors, fitPreference, printTolerance } = req.body;
+
+    const update = {};
+    if (preferredColors !== undefined) update['stylePreferences.preferredColors'] = preferredColors;
+    if (fitPreference !== undefined) update['stylePreferences.fitPreference'] = fitPreference;
+    if (printTolerance !== undefined) update['stylePreferences.printTolerance'] = printTolerance;
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: update },
+      { new: true, runValidators: true },
+    ).select('-passwordHash');
+
+    if (!user) {
+      return res.status(404).json({ success: false, data: null, error: 'User not found' });
+    }
+
+    res.status(200).json({ success: true, data: user, error: null });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  getMe: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
-  updatePreferences: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
+  getMe,
+  updatePreferences,
   deleteAccount,
   restoreAccount,
   purgeExpiredDeletions,

@@ -26,10 +26,17 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(8, 'New password must be at least 8 characters'),
 });
 
+const preferencesSchema = z.object({
+  preferredColors: z.array(z.string().max(30)).max(10).optional(),
+  fitPreference: z.enum(['regular', 'slim', 'oversized', 'relaxed']).optional(),
+  printTolerance: z.enum(['low', 'medium', 'high']).optional(),
+});
+
 module.exports = {
   signupSchema,
   loginSchema,
   emailSchema,
   resetPasswordSchema,
   changePasswordSchema,
+  preferencesSchema,
 };

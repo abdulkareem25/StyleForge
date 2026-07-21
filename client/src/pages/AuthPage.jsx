@@ -132,7 +132,7 @@ export default function AuthPage() {
           })
           if (data.success) {
             toast.success(data.data.message || 'Account created! Check your email for the verification link.')
-            navigate('/onboarding')
+            navigate('/auth')
           }
         } else {
           const { data } = await login({
@@ -144,7 +144,10 @@ export default function AuthPage() {
             localStorage.setItem('accessToken', data.data.accessToken)
             setUser(data.data.user)
             toast.success('Welcome back!')
-            navigate(from, { replace: true })
+            const hasPrefs = data.data.user.stylePreferences?.preferredColors?.length > 0
+              || data.data.user.stylePreferences?.fitPreference
+              || data.data.user.stylePreferences?.printTolerance
+            navigate(hasPrefs ? from : '/onboarding', { replace: true })
           }
         }
       } catch (err) {

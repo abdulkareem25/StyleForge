@@ -10,6 +10,7 @@ import GenerateOutfit from './pages/GenerateOutfit'
 import History from './pages/History'
 import Preferences from './pages/Preferences'
 import AccountSecurity from './pages/AccountSecurity'
+import OnboardingPage from './pages/OnboardingPage'
 
 export default function App() {
   return (
@@ -23,9 +24,7 @@ export default function App() {
           path="/onboarding"
           element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-canvas flex items-center justify-center">
-                <p className="text-h2 font-display text-ink">Onboarding — coming soon</p>
-              </div>
+              <OnboardingPage />
             </ProtectedRoute>
           }
         />
