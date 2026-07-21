@@ -162,6 +162,7 @@ async function generateOutfits(userId, options = {}, deps = {}) {
 
   const occasion = options && options.occasion ? options.occasion : '';
   const weather = options && options.weather ? options.weather : 'any';
+  const overrideRepeat = Boolean(options && options.overrideRepeat);
 
   const wardrobeItems = await resolvedDeps.findWardrobeItems(userId);
   const eligibleItems = filterEligibleItems(wardrobeItems, occasion, weather);
@@ -207,6 +208,20 @@ async function generateOutfits(userId, options = {}, deps = {}) {
   const recentHashes = new Set(recentHistory.map((entry) => entry.combinationHash).filter(Boolean));
 
   const freshCandidates = candidates.filter((candidate) => !recentHashes.has(candidate.combinationHash));
+
+  if (overrideRepeat) {
+    const ranked = rankCandidates(candidates, await resolvedDeps.getUserPreferences(userId));
+    return {
+      outfits: ranked.slice(0, 3).map((candidate) => ({
+        itemIds: candidate.itemIds,
+        combinationHash: candidate.combinationHash,
+        score: candidate.score,
+      })),
+      usedFallback: false,
+      resultState: 'repeat-override',
+      overrideRepeat: true,
+    };
+  }
 
   if (freshCandidates.length > 0) {
     const ranked = rankCandidates(freshCandidates, await resolvedDeps.getUserPreferences(userId));

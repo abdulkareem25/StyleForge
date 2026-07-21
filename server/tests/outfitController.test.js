@@ -30,7 +30,7 @@ test('returns outfit generation results using the authenticated user id', async 
   const originalGenerateOutfits = outfitEngine.generateOutfits;
   outfitEngine.generateOutfits = async (userId, options) => {
     assert.equal(userId, 'user-123');
-    assert.deepEqual(options, { occasion: 'casual', weather: 'summer' });
+    assert.deepEqual(options, { occasion: 'casual', weather: 'summer', overrideRepeat: undefined });
     return { outfits: [{ itemIds: ['a', 'b'] }], usedFallback: false };
   };
 

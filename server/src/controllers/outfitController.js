@@ -6,9 +6,9 @@ const { generateCombinationHash } = require('../utils/comboHash');
 const generate = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
-    const { occasion, weather } = req.body || {};
+    const { occasion, weather, overrideRepeat } = req.body || {};
 
-    const result = await outfitEngine.generateOutfits(userId, { occasion, weather });
+    const result = await outfitEngine.generateOutfits(userId, { occasion, weather, overrideRepeat });
 
     return res.status(200).json({
       success: true,
