@@ -8,6 +8,8 @@ export default function OutfitResults({
   weather,
   usedFallback = false,
   wornOutfitHashes = new Set(),
+  swappingIndex = null,
+  swappingCategory = null,
   onWear,
   onRegenerate,
   onSwap,
@@ -67,6 +69,7 @@ export default function OutfitResults({
             weather={weather}
             usedFallback={usedFallback}
             wornOutfitHashes={wornOutfitHashes}
+            swappingCategory={swappingIndex === index ? swappingCategory : null}
             onWear={onWear}
             onRegenerate={() => onRegenerate?.()}
             onSwap={onSwap}
@@ -98,6 +101,7 @@ export default function OutfitResults({
                 weather={weather}
                 usedFallback={usedFallback}
                 wornOutfitHashes={wornOutfitHashes}
+                swappingCategory={swappingIndex === index ? swappingCategory : null}
                 onWear={onWear}
                 onRegenerate={() => onRegenerate?.()}
                 onSwap={onSwap}

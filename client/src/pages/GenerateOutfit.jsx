@@ -83,6 +83,8 @@ export default function GenerateOutfit() {
   const [apiError, setApiError] = useState(null);
   const [occasion, setOccasion] = useState('');
   const [currentWeather, setCurrentWeather] = useState('any');
+  const [swappingIndex, setSwappingIndex] = useState(null);
+  const [swappingCategory, setSwappingCategory] = useState(null);
 
   const manualWeatherSelectionRef = useRef(false);
   const wardrobeCacheRef = useRef(null);
@@ -248,6 +250,62 @@ export default function GenerateOutfit() {
     }
   }, [toastSuccess, toastError]);
 
+  const handleSwap = useCallback(async (outfit, targetCategory) => {
+    if (!targetCategory) return;
+
+    const outfitIndex = outfitResults.findIndex(
+      (o) => o.combinationHash === outfit.combinationHash,
+    );
+    if (outfitIndex === -1) return;
+
+    setSwappingIndex(outfitIndex);
+    setSwappingCategory(targetCategory);
+
+    try {
+      const payload = {
+        occasion,
+        weather: currentWeather,
+        swapItemIds: outfit.itemIds,
+        swapCategory: targetCategory,
+      };
+
+      const response = await generateOutfits(payload);
+      const result = response?.data?.data || response?.data;
+
+      if (!result || !result.outfits || result.outfits.length === 0) {
+        toastError('No alternative found for that piece. Try a different item.');
+        setSwappingIndex(null);
+        setSwappingCategory(null);
+        return;
+      }
+
+      const replacement = result.outfits[0];
+
+      const newItemIds = [...new Set([...outfit.itemIds, ...replacement.itemIds])];
+      const wardrobeItems = await fetchWardrobeItems(newItemIds);
+      const itemById = new Map(wardrobeItems.map((item) => [item._id || item.id, item]));
+      const newItems = newItemIds.map((id) => itemById.get(id)).filter(Boolean);
+
+      setOutfitResults((prev) => {
+        const next = [...prev];
+        next[outfitIndex] = replacement;
+        return next;
+      });
+      setOutfitItems((prev) => {
+        const merged = new Map(prev.map((item) => [item._id || item.id, item]));
+        for (const item of newItems) {
+          merged.set(item._id || item.id, item);
+        }
+        return [...merged.values()];
+      });
+    } catch {
+      toastError('Could not swap that piece. Please try again.');
+    } finally {
+      setSwappingIndex(null);
+      setSwappingCategory(null);
+    }
+  }, [outfitResults, occasion, currentWeather, fetchWardrobeItems, toastError]);
+
   const handleBackToSelector = useCallback(() => {
     setViewMode(VIEW_MODES.SELECTOR);
     setOutfitResults([]);
@@ -307,9 +365,11 @@ export default function GenerateOutfit() {
               weather={currentWeather}
               usedFallback={usedFallback}
               wornOutfitHashes={wornOutfitHashes}
+              swappingIndex={swappingIndex}
+              swappingCategory={swappingCategory}
               onWear={handleWear}
               onRegenerate={() => handleGenerate(false)}
-              onSwap={() => {}}
+              onSwap={handleSwap}
               onFavorite={handleFavorite}
               onShowRepeat={() => handleGenerate(true)}
             />

@@ -1,4 +1,4 @@
-import { Check, Heart, RefreshCw, RefreshCwOff, Shirt, Shuffle, Sparkles } from 'lucide-react';
+import { Check, Heart, Loader2, RefreshCw, RefreshCwOff, Shirt, Shuffle, Sparkles, ArrowLeftRight } from 'lucide-react';
 import { Chip } from '../ui';
 import { getOccasionDisplayLabel } from '../../constants/occasions';
 
@@ -11,11 +11,21 @@ const CATEGORY_LABELS = {
   accessory: 'Accessory',
 };
 
-function getSlotLabel(item) {
-  return CATEGORY_LABELS[item?.category] || 'Item';
-}
+function ItemThumbnail({ item, slotLabel, category, onSwap, swapping = false }) {
+  const handleSwap = (e) => {
+    e.stopPropagation();
+    if (!swapping && onSwap) onSwap(category);
+  };
 
-function ItemThumbnail({ item, slotLabel }) {
+  if (swapping) {
+    return (
+      <div className="flex aspect-square w-full flex-col items-center justify-center rounded-card border border-indigo/30 bg-indigo/5 gap-1.5">
+        <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-indigo" />
+        <span className="text-micro text-indigo">Swapping&hellip;</span>
+      </div>
+    );
+  }
+
   if (!item) {
     return (
       <div className="flex aspect-square w-full flex-col items-center justify-center rounded-card border border-dashed border-line bg-canvas/50 gap-1">
@@ -26,17 +36,27 @@ function ItemThumbnail({ item, slotLabel }) {
   }
 
   return (
-    <div className="relative aspect-square w-full overflow-hidden rounded-card">
+    <button
+      type="button"
+      onClick={handleSwap}
+      className="group relative aspect-square w-full overflow-hidden rounded-card focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-1"
+      title={`Tap to swap ${slotLabel.toLowerCase()}`}
+    >
       <img
         src={item.thumbnailUrl || item.imageUrl}
         alt={item.subCategory || item.category || 'Clothing item'}
-        className="h-full w-full object-cover"
+        className="h-full w-full object-cover transition-opacity group-hover:opacity-75"
         loading="lazy"
       />
       <span className="absolute bottom-1 left-1 rounded bg-ink/60 px-1 py-px text-micro text-white">
         {slotLabel}
       </span>
-    </div>
+      <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="rounded-full bg-ink/60 p-1.5 text-white">
+          <ArrowLeftRight size={14} strokeWidth={1.5} />
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -47,6 +67,7 @@ export default function OutfitCard({
   weather,
   usedFallback = false,
   wornOutfitHashes = new Set(),
+  swappingCategory = null,
   onWear,
   onRegenerate,
   onSwap,
@@ -67,10 +88,11 @@ export default function OutfitCard({
   const weatherLabel = weather ? weather.charAt(0).toUpperCase() + weather.slice(1) : '';
 
   const alreadyWorn = wornOutfitHashes.has(outfit.combinationHash);
+  const isSwapping = swappingCategory !== null;
 
   const handleWear = () => onWear?.(outfit);
   const handleRegenerate = () => onRegenerate?.();
-  const handleSwap = () => onSwap?.(outfit);
+  const handleSwap = (category) => onSwap?.(outfit, category);
   const handleFavorite = () => onFavorite?.(outfit);
   const handleShowRepeat = () => onShowRepeat?.();
 
@@ -85,13 +107,31 @@ export default function OutfitCard({
 
       <div className="grid grid-cols-[1fr_1fr] grid-rows-[auto_auto] gap-2">
         <div className="row-span-2">
-          <ItemThumbnail item={topItem} slotLabel="Top" />
+          <ItemThumbnail
+            item={topItem}
+            slotLabel="Top"
+            category={topItem?.category || 'top'}
+            onSwap={handleSwap}
+            swapping={swappingCategory === 'top' || swappingCategory === 'ethnic'}
+          />
         </div>
         <div>
-          <ItemThumbnail item={bottomItem} slotLabel="Bottom" />
+          <ItemThumbnail
+            item={bottomItem}
+            slotLabel="Bottom"
+            category="bottom"
+            onSwap={handleSwap}
+            swapping={swappingCategory === 'bottom'}
+          />
         </div>
         <div>
-          <ItemThumbnail item={footwearItem} slotLabel="Footwear" />
+          <ItemThumbnail
+            item={footwearItem}
+            slotLabel="Footwear"
+            category="footwear"
+            onSwap={handleSwap}
+            swapping={swappingCategory === 'footwear'}
+          />
         </div>
       </div>
 
@@ -104,7 +144,8 @@ export default function OutfitCard({
         <button
           type="button"
           onClick={handleWear}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-card bg-indigo px-4 py-3 text-body font-medium text-white shadow-sm transition-colors hover:bg-indigo/90 active:bg-indigo/95 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2"
+          disabled={isSwapping}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-card bg-indigo px-4 py-3 text-body font-medium text-white shadow-sm transition-colors hover:bg-indigo/90 active:bg-indigo/95 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
         >
           {alreadyWorn ? <Check size={16} strokeWidth={1.5} /> : <Shirt size={16} strokeWidth={1.5} />}
           {alreadyWorn ? 'Wear again' : 'Wear this'}
@@ -114,7 +155,8 @@ export default function OutfitCard({
           <button
             type="button"
             onClick={handleRegenerate}
-            className="inline-flex items-center justify-center gap-1.5 rounded-card border border-line bg-transparent px-2 py-2 text-body text-ink transition-colors hover:bg-ink/5 active:bg-ink/10 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2"
+            disabled={isSwapping}
+            className="inline-flex items-center justify-center gap-1.5 rounded-card border border-line bg-transparent px-2 py-2 text-body text-ink transition-colors hover:bg-ink/5 active:bg-ink/10 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
             title="Regenerate"
           >
             <RefreshCw size={14} strokeWidth={1.5} />
@@ -122,9 +164,10 @@ export default function OutfitCard({
           </button>
           <button
             type="button"
-            onClick={handleSwap}
-            className="inline-flex items-center justify-center gap-1.5 rounded-card border border-line bg-transparent px-2 py-2 text-body text-ink transition-colors hover:bg-ink/5 active:bg-ink/10 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2"
-            title="Swap a piece"
+            onClick={() => handleSwap(null)}
+            disabled={isSwapping}
+            className="inline-flex items-center justify-center gap-1.5 rounded-card border border-line bg-transparent px-2 py-2 text-body text-ink transition-colors hover:bg-ink/5 active:bg-ink/10 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
+            title="Tap a piece above to swap it, or tap here to swap all"
           >
             <Shuffle size={14} strokeWidth={1.5} />
             <span className="hidden sm:inline">Swap</span>
@@ -132,7 +175,8 @@ export default function OutfitCard({
           <button
             type="button"
             onClick={handleFavorite}
-            className="inline-flex items-center justify-center gap-1.5 rounded-card border border-line bg-transparent px-2 py-2 text-body text-ink transition-colors hover:bg-ink/5 active:bg-ink/10 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2"
+            disabled={isSwapping}
+            className="inline-flex items-center justify-center gap-1.5 rounded-card border border-line bg-transparent px-2 py-2 text-body text-ink transition-colors hover:bg-ink/5 active:bg-ink/10 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
             title="Favorite"
           >
             <Heart size={14} strokeWidth={1.5} />
@@ -145,7 +189,8 @@ export default function OutfitCard({
         <button
           type="button"
           onClick={handleShowRepeat}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-card border border-brass/30 bg-transparent px-3 py-2 text-body text-brass transition-colors hover:bg-brass/5 active:bg-brass/10 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2"
+          disabled={isSwapping}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-card border border-brass/30 bg-transparent px-3 py-2 text-body text-brass transition-colors hover:bg-brass/5 active:bg-brass/10 focus:outline-none focus:ring-2 focus:ring-indigo focus:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none"
         >
           <RefreshCwOff size={14} strokeWidth={1.5} />
           Show me a repeat anyway

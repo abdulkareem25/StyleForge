@@ -149,6 +149,36 @@ function rankCandidates(candidates, stylePreferences) {
     });
 }
 
+function buildSwapCandidates(lockedItems, replacementPool) {
+  const candidates = [];
+
+  for (const replacement of replacementPool) {
+    const replacementId = getItemId(replacement);
+    if (!replacementId) continue;
+
+    const isAlreadyLocked = lockedItems.some(
+      (locked) => getItemId(locked).toString() === replacementId.toString(),
+    );
+    if (isAlreadyLocked) continue;
+
+    const itemIds = [...lockedItems, replacement]
+      .map((item) => getItemId(item))
+      .filter(Boolean)
+      .map((id) => id.toString())
+      .sort();
+
+    if (itemIds.length === 0) continue;
+
+    candidates.push({
+      itemIds,
+      combinationHash: generateCombinationHash(itemIds),
+      items: [...lockedItems, replacement],
+    });
+  }
+
+  return candidates;
+}
+
 async function generateOutfits(userId, options = {}, deps = {}) {
   const resolvedDeps = {
     findWardrobeItems: deps.findWardrobeItems || (async () => WardrobeItem.find({ userId, isActive: true }).lean().exec()),
@@ -163,8 +193,97 @@ async function generateOutfits(userId, options = {}, deps = {}) {
   const occasion = options && options.occasion ? options.occasion : '';
   const weather = options && options.weather ? options.weather : 'any';
   const overrideRepeat = Boolean(options && options.overrideRepeat);
+  const swapItemIds = Array.isArray(options && options.swapItemIds) ? options.swapItemIds : null;
+  const swapCategory = options && options.swapCategory ? options.swapCategory : null;
 
   const wardrobeItems = await resolvedDeps.findWardrobeItems(userId);
+
+  if (swapItemIds && swapCategory && swapItemIds.length > 0) {
+    const eligibleItems = filterEligibleItems(wardrobeItems, occasion, weather);
+
+    const itemById = new Map();
+    for (const item of wardrobeItems) {
+      const id = getItemId(item);
+      if (id) itemById.set(id.toString(), item);
+    }
+
+    const lockedItems = swapItemIds
+      .map((id) => itemById.get(id.toString()))
+      .filter(Boolean);
+
+    if (lockedItems.length !== swapItemIds.length) {
+      return { outfits: [], usedFallback: false, resultState: 'no-eligible-items' };
+    }
+
+    const swapCategories = (swapCategory === 'top' || swapCategory === 'ethnic') ? ['top', 'ethnic'] : [swapCategory];
+    const targetItems = eligibleItems.filter(
+      (item) => swapCategories.includes(getItemValue(item, 'category')),
+    );
+
+    if (targetItems.length === 0) {
+      return { outfits: [], usedFallback: false, resultState: 'no-eligible-items' };
+    }
+
+    const candidates = buildSwapCandidates(lockedItems, targetItems);
+
+    if (candidates.length === 0) {
+      return { outfits: [], usedFallback: false, resultState: 'no-eligible-items' };
+    }
+
+    const cutoff = new Date();
+    cutoff.setUTCDate(cutoff.getUTCDate() - 30);
+
+    const historyEntries = await (deps.findHistory
+      ? deps.findHistory(userId, cutoff)
+      : deps.findRecentHistory
+        ? deps.findRecentHistory(userId, cutoff)
+        : resolvedDeps.findRecentHistory(userId, cutoff));
+    const recentHistory = (historyEntries || []).filter((entry) => entry && entry.wornDate && new Date(entry.wornDate) >= cutoff);
+    const recentHashes = new Set(recentHistory.map((entry) => entry.combinationHash).filter(Boolean));
+
+    const freshCandidates = candidates.filter((candidate) => !recentHashes.has(candidate.combinationHash));
+
+    if (overrideRepeat) {
+      const ranked = rankCandidates(candidates, await resolvedDeps.getUserPreferences(userId));
+      return {
+        outfits: ranked.slice(0, 1).map((candidate) => ({
+          itemIds: candidate.itemIds,
+          combinationHash: candidate.combinationHash,
+          score: candidate.score,
+        })),
+        usedFallback: false,
+        resultState: 'repeat-override',
+        overrideRepeat: true,
+      };
+    }
+
+    if (freshCandidates.length > 0) {
+      const ranked = rankCandidates(freshCandidates, await resolvedDeps.getUserPreferences(userId));
+      return {
+        outfits: ranked.slice(0, 1).map((candidate) => ({
+          itemIds: candidate.itemIds,
+          combinationHash: candidate.combinationHash,
+          score: candidate.score,
+        })),
+        usedFallback: false,
+        resultState: 'success',
+      };
+    }
+
+    const fallbackCandidates = [...candidates].sort((a, b) => compareCandidatesByLastWornDate(a, b, historyEntries));
+    const rankedFallback = rankCandidates(fallbackCandidates.slice(0, 1), await resolvedDeps.getUserPreferences(userId));
+
+    return {
+      outfits: rankedFallback.slice(0, 1).map((candidate) => ({
+        itemIds: candidate.itemIds,
+        combinationHash: candidate.combinationHash,
+        score: candidate.score,
+      })),
+      usedFallback: true,
+      resultState: 'all-fresh-exhausted',
+    };
+  }
+
   const eligibleItems = filterEligibleItems(wardrobeItems, occasion, weather);
 
   if (!eligibleItems.length) {
