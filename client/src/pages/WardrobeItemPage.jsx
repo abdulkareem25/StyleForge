@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, Chip, Input, Select } from '../components/ui'
 import { useToast } from '../components/ui/Toast'
 import { categories, fits, patterns, sleeveLengths, subCategories } from '../constants/categories'
-import { occasions } from '../constants/occasions'
+import { getOccasionDisplayLabel, occasions } from '../constants/occasions'
 import { deleteWardrobeItem, getWardrobeItem, updateWardrobeItem } from '../services/wardrobeService'
 
 const FIT_OPTIONS = fits.map((value) => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1) }))
@@ -361,7 +361,7 @@ export default function WardrobeItemPage() {
                       selected={form.formalityTags.includes(tag)}
                       onClick={() => toggleTag('formalityTags', tag)}
                     >
-                      {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                      {getOccasionDisplayLabel(tag)}
                     </Chip>
                   ))}
                 </div>

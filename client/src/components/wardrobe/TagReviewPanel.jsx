@@ -186,7 +186,10 @@ function ItemCard({ item, index, tags, onChange, onConfirm, saving, confirmed })
                   selected={tags.formalityTags.includes(o)}
                   onClick={() => toggleFormality(o)}
                 >
-                  {o.charAt(0).toUpperCase() + o.slice(1)}
+                  {o
+                    .split('-')
+                    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+                    .join(' ')}
                 </Chip>
               ))}
             </div>

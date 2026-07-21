@@ -3,12 +3,24 @@ const {
   categories,
   formalityTags,
 } = require('../constants/categories');
+const {
+  CUSTOM_OCCASION_MAX_LENGTH,
+  standardOccasions,
+  validateCustomOccasion,
+} = require('../constants/occasions');
+
+const occasionSchema = z.union([
+  z.enum(standardOccasions),
+  z.string().trim().max(CUSTOM_OCCASION_MAX_LENGTH).refine((value) => validateCustomOccasion(value).isValid, {
+    message: 'Custom occasion must be a safe, non-empty string.',
+  }),
+]).optional();
 
 const wardrobeQuerySchema = z.object({
   category: z.enum(categories).optional(),
   color: z.string().max(30).optional(),
   formalityTag: z.enum(formalityTags).optional(),
-  occasion: z.enum(formalityTags).optional(),
+  occasion: occasionSchema,
   isActive: z.enum(['true', 'false']).optional(),
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1).optional(),

@@ -3,6 +3,7 @@ const Outfit = require('../models/Outfit');
 const { getUploadSignature } = require('../services/imageService');
 const { tagImage } = require('../services/aiTaggingService');
 const { buildUserScopedFilter } = require('../utils/ownership');
+const { getOccasionMatchStrategy } = require('../constants/occasions');
 
 // ── List wardrobe items with filters and search (CAT-02) ────────────
 const list = async (req, res, next) => {
@@ -22,8 +23,16 @@ const list = async (req, res, next) => {
     const filter = { userId };
 
     if (category) filter.category = category;
-    const tagFilter = formalityTag || occasion;
-    if (tagFilter) filter.formalityTags = tagFilter;
+
+    if (formalityTag) {
+      filter.formalityTags = formalityTag;
+    } else if (occasion) {
+      const strategy = getOccasionMatchStrategy(occasion);
+      if (strategy.mode === 'hard') {
+        filter.formalityTags = { $in: strategy.formalityTags };
+      }
+    }
+
     if (isActive !== undefined) filter.isActive = isActive === 'true';
 
     const colorRegex = color ? new RegExp(color, 'i') : null;

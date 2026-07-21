@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from 'react'
 import { X } from 'lucide-react'
-import { Input, Chip } from '../ui'
-import { categories, formalityTags } from '../../constants/categories'
+import { useCallback, useEffect, useState } from 'react'
+import { categories } from '../../constants/categories'
+import { occasions } from '../../constants/occasions'
+import { Chip, Input } from '../ui'
 
 const STATUS_OPTIONS = [
   { value: 'true', label: 'Active' },
@@ -17,17 +18,9 @@ const CATEGORY_LABELS = {
   accessory: 'Accessory',
 }
 
-const OCCASION_LABELS = {
-  casual: 'Casual',
-  office: 'Office',
-  formal: 'Formal',
-  ethnic: 'Ethnic',
-  party: 'Party',
-  gym: 'Gym',
-  travel: 'Travel',
-  date: 'Date',
-  festival: 'Festival',
-}
+const OCCASION_LABELS = Object.fromEntries(
+  occasions.map((value) => [value, value.split('-').map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1)).join(' ')]),
+)
 
 export default function WardrobeFilterPanel({
   filters,
@@ -145,7 +138,7 @@ export default function WardrobeFilterPanel({
       <fieldset>
         <legend className="text-caption text-ink mb-2">Occasion</legend>
         <div className="flex flex-wrap gap-1.5">
-          {formalityTags.map((tag) => (
+          {occasions.map((tag) => (
             <Chip
               key={tag}
               interactive
