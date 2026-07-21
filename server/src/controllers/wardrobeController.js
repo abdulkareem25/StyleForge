@@ -184,8 +184,6 @@ const create = async (req, res, next) => {
           aiTagConfidence: item.aiTagConfidence,
           createdAt: item.createdAt,
         },
-        manualReviewRequired: taggingResult.manualReviewRequired,
-        manualTagMessage: taggingResult.manualTagMessage,
       },
       error: null,
     });
