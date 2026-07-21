@@ -9,6 +9,7 @@ const wardrobeRoutes = require('./routes/wardrobeRoutes');
 const outfitRoutes = require('./routes/outfitRoutes');
 const userRoutes = require('./routes/userRoutes');
 const weatherRoutes = require('./routes/weatherRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/v1/wardrobe', wardrobeRoutes);
 app.use('/api/v1/outfits', outfitRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/weather', weatherRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // ── 404 catch-all ──────────────────────────────────────────────────────
 app.use((_req, res) => {
