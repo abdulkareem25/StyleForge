@@ -123,7 +123,7 @@ test('create whitelists client-editable fields and keeps server-controlled value
 const originalWardrobeCreate = WardrobeItem.create;
 
 test('update marks an item corrected and activates it after tag corrections are saved', async () => {
-  let savedId;
+  let savedFilter;
   let savedUpdate;
   let savedOptions;
   const existingItem = {
@@ -144,16 +144,16 @@ test('update marks an item corrected and activates it after tag corrections are 
     userCorrected: false,
   };
 
-  WardrobeItem.findById = async (id) => {
-    savedId = id;
+  WardrobeItem.findOne = async (filter) => {
+    savedFilter = filter;
     return existingItem;
   };
 
-  WardrobeItem.findByIdAndUpdate = async (id, update, options) => {
-    savedId = id;
+  WardrobeItem.findOneAndUpdate = async (filter, update, options) => {
+    savedFilter = filter;
     savedUpdate = update;
     savedOptions = options;
-    return { ...existingItem, ...update.$set, _id: id };
+    return { ...existingItem, ...update.$set, _id: 'item-456' };
   };
 
   delete require.cache[require.resolve('../src/controllers/wardrobeController')];
@@ -174,7 +174,7 @@ test('update marks an item corrected and activates it after tag corrections are 
 
   await wardrobeController.update(req, res, next);
 
-  assert.equal(savedId, 'item-456');
+  assert.deepEqual(savedFilter, { _id: 'item-456', userId: 'user-123' });
   assert.equal(savedUpdate.$set.userCorrected, true);
   assert.equal(savedUpdate.$set.isActive, true);
   assert.equal(savedOptions.new, true);
@@ -183,9 +183,51 @@ test('update marks an item corrected and activates it after tag corrections are 
   assert.equal(res.payload.data.item.category, 'bottoms');
   assert.equal(res.payload.data.item.userCorrected, true);
 
-  WardrobeItem.findById = originalFindById;
-  WardrobeItem.findByIdAndUpdate = originalFindByIdAndUpdate;
+  WardrobeItem.findOne = originalFindOne;
+  WardrobeItem.findOneAndUpdate = originalFindOneAndUpdate;
 });
 
-const originalFindById = WardrobeItem.findById;
-const originalFindByIdAndUpdate = WardrobeItem.findByIdAndUpdate;
+test('remove soft deletes an owned item instead of hard deleting it', async () => {
+  let queryFilter;
+  let updatePayload;
+  const existingItem = {
+    _id: 'item-789',
+    userId: 'user-123',
+    isActive: true,
+  };
+
+  WardrobeItem.findOne = async (filter) => {
+    queryFilter = filter;
+    return existingItem;
+  };
+
+  WardrobeItem.findOneAndUpdate = async (filter, update, options) => {
+    queryFilter = filter;
+    updatePayload = update;
+    return { ...existingItem, ...update.$set, _id: 'item-789' };
+  };
+
+  delete require.cache[require.resolve('../src/controllers/wardrobeController')];
+  const wardrobeController = require('../src/controllers/wardrobeController');
+
+  const req = {
+    user: { id: 'user-123' },
+    params: { id: 'item-789' },
+  };
+  const res = createMockRes();
+  const next = () => { };
+
+  await wardrobeController.remove(req, res, next);
+
+  assert.deepEqual(queryFilter, { _id: 'item-789', userId: 'user-123' });
+  assert.deepEqual(updatePayload, { $set: { isActive: false } });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.payload.success, true);
+  assert.equal(res.payload.data.item.isActive, false);
+
+  WardrobeItem.findOne = originalFindOne;
+  WardrobeItem.findOneAndUpdate = originalFindOneAndUpdate;
+});
+
+const originalFindOne = WardrobeItem.findOne;
+const originalFindOneAndUpdate = WardrobeItem.findOneAndUpdate;

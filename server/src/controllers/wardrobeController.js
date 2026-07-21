@@ -1,6 +1,7 @@
 const WardrobeItem = require('../models/WardrobeItem');
 const { getUploadSignature } = require('../services/imageService');
 const { tagImage } = require('../services/aiTaggingService');
+const { buildUserScopedFilter } = require('../utils/ownership');
 
 // ── List wardrobe items with filters and search (CAT-02) ────────────
 const list = async (req, res, next) => {
@@ -10,6 +11,7 @@ const list = async (req, res, next) => {
       category,
       color,
       formalityTag,
+      occasion,
       isActive,
       search,
       page = 1,
@@ -19,14 +21,15 @@ const list = async (req, res, next) => {
     const filter = { userId };
 
     if (category) filter.category = category;
-    if (formalityTag) filter.formalityTags = formalityTag;
+    const tagFilter = formalityTag || occasion;
+    if (tagFilter) filter.formalityTags = tagFilter;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
 
-    if (color) {
-      const regex = new RegExp(color, 'i');
+    const colorRegex = color ? new RegExp(color, 'i') : null;
+    if (colorRegex) {
       filter.$or = [
-        { primaryColor: regex },
-        { secondaryColor: regex },
+        { primaryColor: colorRegex },
+        { secondaryColor: colorRegex },
       ];
     }
 
@@ -51,6 +54,7 @@ const list = async (req, res, next) => {
 
     const [items, total] = await Promise.all([
       WardrobeItem.find(filter)
+        .select('id imageUrl thumbnailUrl category subCategory sleeveLength fit primaryColor secondaryColor pattern formalityTags seasonTags isActive userCorrected aiTagConfidence createdAt')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -225,13 +229,14 @@ const update = async (req, res, next) => {
       payload.isActive = true;
     }
 
-    const existingItem = await WardrobeItem.findById(itemId);
-    if (!existingItem || existingItem.userId.toString() !== userId) {
+    const filter = buildUserScopedFilter(itemId, userId);
+    const existingItem = await WardrobeItem.findOne(filter);
+    if (!existingItem) {
       return res.status(404).json({ success: false, data: null, error: 'Wardrobe item not found' });
     }
 
-    const item = await WardrobeItem.findByIdAndUpdate(
-      itemId,
+    const item = await WardrobeItem.findOneAndUpdate(
+      filter,
       { $set: payload },
       { new: true, runValidators: true },
     );
@@ -265,8 +270,35 @@ const update = async (req, res, next) => {
   }
 };
 
-const remove = async (req, res) => {
-  res.status(501).json({ success: false, data: null, error: 'Not implemented' });
+const remove = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const itemId = req.params.id;
+    const filter = buildUserScopedFilter(itemId, userId);
+
+    const item = await WardrobeItem.findOneAndUpdate(
+      filter,
+      { $set: { isActive: false } },
+      { new: true, runValidators: true },
+    );
+
+    if (!item) {
+      return res.status(404).json({ success: false, data: null, error: 'Wardrobe item not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        item: {
+          id: item._id,
+          isActive: item.isActive,
+        },
+      },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {
