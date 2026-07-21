@@ -10,7 +10,7 @@ router.use(authMiddleware);
 router.get('/colors', wardrobeController.colors);
 router.get('/', validateRequest(wardrobeQuerySchema, 'query'), wardrobeController.list);
 router.post('/upload-auth', rateLimiter.uploadAuthLimiter, wardrobeController.uploadAuth);
-router.post('/', wardrobeController.create);
+router.post('/', rateLimiter.aiTaggingLimiter, wardrobeController.create);
 router.patch('/:id', wardrobeController.update);
 router.delete('/:id', wardrobeController.remove);
 

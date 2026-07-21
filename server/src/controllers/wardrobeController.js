@@ -1,13 +1,6 @@
 const WardrobeItem = require('../models/WardrobeItem');
-const { deleteImage, getUploadSignature } = require('../services/imageService');
-
-const CLEAR_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'none',
-  path: '/',
-  expires: new Date(0),
-};
+const { getUploadSignature } = require('../services/imageService');
+const { tagImage } = require('../services/aiTaggingService');
 
 // ── List wardrobe items with filters and search (CAT-02) ────────────
 const list = async (req, res, next) => {
@@ -125,8 +118,80 @@ const uploadAuth = async (req, res, next) => {
   }
 };
 
-const create = async (req, res) => {
-  res.status(501).json({ success: false, data: null, error: 'Not implemented' });
+const create = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const allowedFields = [
+      'imageUrl',
+      'thumbnailUrl',
+      'category',
+      'subCategory',
+      'sleeveLength',
+      'fit',
+      'primaryColor',
+      'secondaryColor',
+      'pattern',
+      'formalityTags',
+      'seasonTags',
+    ];
+
+    const payload = {};
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        payload[field] = req.body[field];
+      }
+    });
+
+    if (!payload.imageUrl) {
+      return res.status(400).json({ success: false, data: null, error: 'imageUrl is required' });
+    }
+
+    const taggingResult = await tagImage(payload.imageUrl);
+    const item = await WardrobeItem.create({
+      userId,
+      imageUrl: payload.imageUrl,
+      thumbnailUrl: payload.thumbnailUrl || payload.imageUrl,
+      category: payload.category || taggingResult.category,
+      subCategory: payload.subCategory || taggingResult.subCategory,
+      sleeveLength: payload.sleeveLength || taggingResult.sleeveLength,
+      fit: payload.fit || taggingResult.fit,
+      primaryColor: payload.primaryColor || taggingResult.primaryColor,
+      secondaryColor: payload.secondaryColor ?? taggingResult.secondaryColor ?? null,
+      pattern: payload.pattern || taggingResult.pattern,
+      formalityTags: Array.isArray(payload.formalityTags) ? payload.formalityTags : (taggingResult.formalityTags || []),
+      seasonTags: Array.isArray(payload.seasonTags) ? payload.seasonTags : (taggingResult.seasonTags || []),
+      isActive: true,
+      userCorrected: false,
+      aiTagConfidence: taggingResult.aiTagConfidence ?? 0,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        item: {
+          id: item._id,
+          imageUrl: item.imageUrl,
+          thumbnailUrl: item.thumbnailUrl,
+          category: item.category,
+          subCategory: item.subCategory,
+          sleeveLength: item.sleeveLength,
+          fit: item.fit,
+          primaryColor: item.primaryColor,
+          secondaryColor: item.secondaryColor,
+          pattern: item.pattern,
+          formalityTags: item.formalityTags,
+          seasonTags: item.seasonTags,
+          aiTagConfidence: item.aiTagConfidence,
+          createdAt: item.createdAt,
+        },
+        manualReviewRequired: taggingResult.manualReviewRequired,
+        manualTagMessage: taggingResult.manualTagMessage,
+      },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const update = async (req, res) => {

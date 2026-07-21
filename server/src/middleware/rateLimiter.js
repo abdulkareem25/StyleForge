@@ -49,6 +49,15 @@ const uploadAuthLimiter = rateLimit({
   message: { success: false, data: null, error: 'Too many upload requests, please try again after 15 minutes' },
 });
 
+// Stricter limiter for AI tagging requests to prevent runaway Gemini usage.
+const aiTaggingLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // Max 20 tagging requests per IP per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, error: 'Too many tagging requests, please try again shortly' },
+});
+
 // Rate limiter for account deletion — destructive action, conservative limit
 const deleteAccountLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -62,6 +71,7 @@ limiter.signupLimiter = signupLimiter;
 limiter.loginLimiter = loginLimiter;
 limiter.forgotPasswordLimiter = forgotPasswordLimiter;
 limiter.uploadAuthLimiter = uploadAuthLimiter;
+limiter.aiTaggingLimiter = aiTaggingLimiter;
 limiter.deleteAccountLimiter = deleteAccountLimiter;
 
 module.exports = limiter;
