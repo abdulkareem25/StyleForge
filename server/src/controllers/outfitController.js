@@ -2,6 +2,7 @@ const outfitEngine = require('../services/outfitEngine');
 const Outfit = require('../models/Outfit');
 const OutfitHistory = require('../models/OutfitHistory');
 const { generateCombinationHash } = require('../utils/comboHash');
+const { buildUserScopedFilter } = require('../utils/ownership');
 
 const generate = async (req, res, next) => {
   try {
@@ -85,10 +86,39 @@ const wear = async (req, res, _next) => {
   }
 };
 
+const favorite = async (req, res, _next) => {
+  try {
+    const userId = req.user && req.user.id;
+    const { id } = req.params;
+
+    const filter = buildUserScopedFilter(id, userId);
+    const outfit = await Outfit.findOne(filter);
+
+    if (!outfit) {
+      return res.status(404).json({ success: false, data: null, error: 'Outfit not found' });
+    }
+
+    const updated = await Outfit.findOneAndUpdate(
+      filter,
+      [{ $set: { isFavorite: { $not: '$isFavorite' } } }],
+      { new: true },
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: { isFavorite: updated.isFavorite },
+      error: null,
+    });
+  } catch (error) {
+    console.error(error.stack || error.message || error);
+    return res.status(500).json({ success: false, data: null, error: 'Something went wrong toggling favorite' });
+  }
+};
+
 module.exports = {
   generate,
   wear,
-  favorite: (req, res) => { res.status(501).json({ success: false, data: null, error: 'Not implemented' }); },
+  favorite,
   history: async (req, res, next) => {
     try {
       const userId = req.user.id;
