@@ -40,18 +40,18 @@ function ActiveFiltersBar({ filters, onRemove, onClearAll }) {
 
 function EmptyState({ hasFilters, onUploadStart }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4">
+    <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
       <div className="w-16 h-16 rounded-full bg-canvas flex items-center justify-center">
         <Shirt size={32} strokeWidth={1.5} className="text-ink/20" />
       </div>
-      <div className="text-center">
+      <div className="max-w-md">
         <h2 className="text-h2 font-display text-ink">
-          {hasFilters ? 'No matching items' : 'Your wardrobe is empty'}
+          {hasFilters ? 'No matching items' : 'Your wardrobe is empty — add your first few pieces to get started'}
         </h2>
-        <p className="text-body text-ink/60 mt-1">
+        <p className="text-body text-ink/60 mt-2">
           {hasFilters
             ? 'Try adjusting your filters or search terms.'
-            : 'Upload some clothes to get started.'}
+            : 'Upload a few clothes to build your digital closet and start generating outfits.'}
         </p>
       </div>
       {!hasFilters && (
@@ -101,6 +101,8 @@ export default function Wardrobe() {
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [loadingError, setLoadingError] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [availableColors, setAvailableColors] = useState([])
   const [showUploadWidget, setShowUploadWidget] = useState(false)
@@ -118,10 +120,16 @@ export default function Wardrobe() {
     return count
   }, [filters])
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true)
+  const fetchItems = useCallback(async ({ nextPage = 1, append = false } = {}) => {
+    if (append) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+      setLoadingError(false)
+    }
+
     try {
-      const params = { page, limit: 20 }
+      const params = { page: nextPage, limit: 20 }
       if (filters.category) params.category = filters.category
       if (filters.color) params.color = filters.color
       if (filters.formalityTag) params.formalityTag = filters.formalityTag
@@ -130,19 +138,25 @@ export default function Wardrobe() {
 
       const { data } = await getWardrobe(params)
       if (data.success) {
-        setItems(data.data.items)
+        setItems((prev) => (append ? [...prev, ...data.data.items] : data.data.items))
         setTotal(data.data.total)
         setPages(data.data.pages)
+        setPage(nextPage)
+        setLoadingError(false)
+      } else {
+        setLoadingError(true)
       }
     } catch {
+      setLoadingError(true)
       toast.error('Failed to load wardrobe')
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
-  }, [filters, page, toast])
+  }, [filters, toast])
 
   useEffect(() => {
-    fetchItems()
+    fetchItems({ nextPage: 1, append: false })
   }, [fetchItems])
 
   useEffect(() => {
@@ -171,6 +185,12 @@ export default function Wardrobe() {
     })
     setPage(1)
   }, [])
+
+  const handleLoadMore = useCallback(() => {
+    if (page < pages && !loadingMore) {
+      fetchItems({ nextPage: page + 1, append: true })
+    }
+  }, [fetchItems, loadingMore, page, pages])
 
   const handleUploadReady = useCallback((items) => {
     setShowUploadWidget(false)
@@ -276,38 +296,35 @@ export default function Wardrobe() {
             </div>
           )}
           {loading ? (
-            <SkeletonGrid count={8} />
+            <SkeletonGrid count={8} className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" />
+          ) : loadingError ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-4 rounded-card border border-line bg-surface px-6">
+              <h2 className="text-h2 font-display text-ink">We couldn’t load your wardrobe</h2>
+              <p className="text-body text-ink/60 text-center">Please try again so your closet stays up to date.</p>
+              <Button onClick={() => fetchItems({ nextPage: 1, append: false })}>Retry</Button>
+            </div>
           ) : items.length === 0 ? (
             <EmptyState hasFilters={activeFilterCount > 0} onUploadStart={() => setShowUploadWidget(true)} />
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
                 {items.map((item) => (
-                  <ItemCard key={item._id} item={item} onSelect={setSelectedItem} />
+                  <ItemCard key={item._id || item.id} item={item} onSelect={setSelectedItem} />
                 ))}
               </div>
 
               {pages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
+                <div className="mt-8 flex flex-col items-center gap-3">
                   <Button
                     variant="secondary"
                     size="sm"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
+                    loading={loadingMore}
+                    disabled={page >= pages || loadingMore}
+                    onClick={handleLoadMore}
                   >
-                    Previous
+                    {page >= pages ? 'No more items' : 'Load more'}
                   </Button>
-                  <span className="text-caption text-ink/50">
-                    Page {page} of {pages}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={page >= pages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Next
-                  </Button>
+                  <p className="text-caption text-ink/50">Showing {items.length} of {total} items</p>
                 </div>
               )}
             </>

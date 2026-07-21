@@ -49,10 +49,11 @@ export function SkeletonCard({ className = '' }) {
 }
 
 export function SkeletonGrid({ count = 6, columns = 3, className = '' }) {
+  const responsiveClass = className.includes('grid-cols-') ? className : `grid-cols-${columns}`;
+
   return (
     <div
-      className={`grid gap-4 ${className}`}
-      style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+      className={`grid gap-4 ${responsiveClass} ${className}`}
       aria-label="Loading"
       role="status"
     >
