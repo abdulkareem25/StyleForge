@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { Shirt, Sparkles, Clock, User } from 'lucide-react'
+import { Shirt, Sparkles, Heart, Clock, User } from 'lucide-react'
 
 const navItems = [
   { to: '/wardrobe', label: 'Wardrobe', icon: Shirt },
   { to: '/generate', label: 'Generate', icon: Sparkles },
+  { to: '/favorites', label: 'Saved', icon: Heart },
   { to: '/history', label: 'History', icon: Clock },
   { to: '/preferences', label: 'Profile', icon: User },
 ]

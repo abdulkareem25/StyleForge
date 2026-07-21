@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext'
 import AccountSecurity from './pages/AccountSecurity'
 import AuthPage from './pages/AuthPage'
 import Dashboard from './pages/Dashboard'
+import Favorites from './pages/Favorites'
 import GenerateOutfit from './pages/GenerateOutfit'
 import History from './pages/History'
 import LandingPage from './pages/LandingPage'
@@ -58,6 +59,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <GenerateOutfit />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/favorites"
+            element={
+              <ProtectedRoute>
+                <Favorites />
               </ProtectedRoute>
             }
           />

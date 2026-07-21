@@ -119,6 +119,55 @@ module.exports = {
   generate,
   wear,
   favorite,
+  favorites: async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      const { page = 1, limit = 20 } = req.query;
+
+      const filter = { userId, isFavorite: true };
+      const skip = (page - 1) * limit;
+
+      const [outfits, total] = await Promise.all([
+        Outfit.find(filter)
+          .sort({ updatedAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate({
+            path: 'itemIds',
+            select: 'category subCategory primaryColor secondaryColor imageUrl thumbnailUrl',
+          })
+          .lean(),
+        Outfit.countDocuments(filter),
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          favorites: outfits.map((outfit) => ({
+            id: outfit._id,
+            combinationHash: outfit.combinationHash,
+            isFavorite: outfit.isFavorite,
+            items: (outfit.itemIds || []).map((item) => ({
+              id: item._id,
+              category: item.category,
+              subCategory: item.subCategory,
+              primaryColor: item.primaryColor,
+              secondaryColor: item.secondaryColor,
+              imageUrl: item.imageUrl,
+              thumbnailUrl: item.thumbnailUrl,
+            })),
+          })),
+          total,
+          page: Number(page),
+          limit: Number(limit),
+          pages: Math.ceil(total / limit),
+        },
+        error: null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
   history: async (req, res, next) => {
     try {
       const userId = req.user.id;
