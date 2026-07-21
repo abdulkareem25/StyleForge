@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const outfitController = require('../src/controllers/outfitController');
 const outfitEngine = require('../src/services/outfitEngine');
+const { OutfitGenerationError } = require('../src/errors/AppError');
 
 function createResponse() {
   let statusCode = 200;
@@ -30,7 +31,13 @@ test('returns outfit generation results using the authenticated user id', async 
   const originalGenerateOutfits = outfitEngine.generateOutfits;
   outfitEngine.generateOutfits = async (userId, options) => {
     assert.equal(userId, 'user-123');
-    assert.deepEqual(options, { occasion: 'casual', weather: 'summer', overrideRepeat: undefined });
+    assert.deepEqual(options, {
+      occasion: 'casual',
+      weather: 'summer',
+      overrideRepeat: undefined,
+      swapItemIds: undefined,
+      swapCategory: undefined,
+    });
     return { outfits: [{ itemIds: ['a', 'b'] }], usedFallback: false };
   };
 
@@ -50,7 +57,7 @@ test('returns outfit generation results using the authenticated user id', async 
   outfitEngine.generateOutfits = originalGenerateOutfits;
 });
 
-test('returns a generic error to the client and logs a stack trace for unexpected engine failures', async () => {
+test('calls next with OutfitGenerationError for unexpected engine failures', async () => {
   const originalGenerateOutfits = outfitEngine.generateOutfits;
   outfitEngine.generateOutfits = async () => {
     throw new Error('db exploded');
@@ -58,16 +65,16 @@ test('returns a generic error to the client and logs a stack trace for unexpecte
 
   const req = { user: { id: 'user-123' }, body: { occasion: 'casual', weather: 'summer' } };
   const res = createResponse();
-  let nextCalled = false;
-  const next = () => {
-    nextCalled = true;
-  };
+  let nextError = null;
+  const next = (err) => { nextError = err; };
 
   await outfitController.generate(req, res, next);
 
-  assert.equal(nextCalled, false);
-  assert.equal(res.statusCode, 500);
-  assert.equal(res.payload.error, 'Something went wrong generating your outfit — please try again');
+  assert.ok(nextError instanceof OutfitGenerationError);
+  assert.equal(nextError.status, 500);
+  assert.equal(nextError.category, 'outfit');
+  assert.equal(nextError.alert, true);
+  assert.equal(nextError.message, 'Something went wrong generating your outfit — please try again');
 
   outfitEngine.generateOutfits = originalGenerateOutfits;
 });
