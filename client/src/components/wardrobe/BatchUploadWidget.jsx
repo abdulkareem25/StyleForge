@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from 'react'
-import { FileUploader } from '../ui'
+import { useCallback, useRef, useState } from 'react'
 import { getUploadAuth } from '../../services/wardrobeService'
 import compressImage from '../../utils/compressImage'
 import { validateImageFile } from '../../utils/fileValidation'
+import { FileUploader } from '../ui'
 
 const ACCEPT = 'image/jpeg,image/png,image/webp'
 const MAX_FILES = 20

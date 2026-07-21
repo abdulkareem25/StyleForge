@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Filter, Shirt, Upload } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Card, Chip, Drawer, SkeletonGrid } from '../components/ui'
 import { useToast } from '../components/ui/Toast'
-import { getWardrobe, getWardrobeColors } from '../services/wardrobeService'
-import WardrobeFilterPanel from '../components/wardrobe/WardrobeFilterPanel'
 import BatchUploadWidget from '../components/wardrobe/BatchUploadWidget'
+import WardrobeFilterPanel from '../components/wardrobe/WardrobeFilterPanel'
+import { getWardrobe, getWardrobeColors } from '../services/wardrobeService'
 
 const INITIAL_FILTERS = { category: undefined, color: undefined, formalityTag: undefined, isActive: 'true', search: undefined }
 
@@ -148,7 +148,7 @@ export default function Wardrobe() {
       .then(({ data }) => {
         if (data.success) setAvailableColors(data.data)
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const handleFilterChange = useCallback((patch) => {
@@ -243,7 +243,7 @@ export default function Wardrobe() {
                   Close
                 </Button>
               </div>
-              <BatchUploadWidget onItemsReady={handleUploadReady} onProgressChange={() => {}} />
+              <BatchUploadWidget onItemsReady={handleUploadReady} onProgressChange={() => { }} />
             </div>
           )}
           {loading ? (
