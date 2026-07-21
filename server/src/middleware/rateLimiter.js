@@ -39,6 +39,16 @@ const forgotPasswordLimiter = rateLimit({
   message: { success: false, data: null, error: 'Too many password reset requests, please try again after 15 minutes' },
 });
 
+// Rate limiter for upload-auth — adjacent to metered ImageKit storage (Security doc §4, §5)
+// Prevents token-request abuse that could drive up storage costs.
+const uploadAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Max 30 upload-auth requests per IP per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, error: 'Too many upload requests, please try again after 15 minutes' },
+});
+
 // Rate limiter for account deletion — destructive action, conservative limit
 const deleteAccountLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -51,6 +61,7 @@ const deleteAccountLimiter = rateLimit({
 limiter.signupLimiter = signupLimiter;
 limiter.loginLimiter = loginLimiter;
 limiter.forgotPasswordLimiter = forgotPasswordLimiter;
+limiter.uploadAuthLimiter = uploadAuthLimiter;
 limiter.deleteAccountLimiter = deleteAccountLimiter;
 
 module.exports = limiter;

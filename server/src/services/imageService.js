@@ -53,8 +53,28 @@ const deleteImages = async (fileUrls) => {
 };
 
 module.exports = {
-  getUploadSignature: async () => {
-    throw new Error('Not implemented — see wardrobe upload ticket');
+  /**
+   * Generates a short-lived signed upload token for client-side ImageKit uploads.
+   * The image bytes never pass through the Express server — only this token does.
+   *
+   * Uses ImageKit SDK's getAuthenticationParameters() which returns:
+   *   { token (UUID), expire (Unix seconds), signature (HMAC-SHA1) }
+   * We also include publicKey so the client doesn't need its own copy of the env var.
+   *
+   * @param {object} [opts]
+   * @param {number} [opts.expiresInSeconds=1800] - Token lifetime (max 3600s / 1 hour per ImageKit)
+   * @returns {{ token: string, expire: number, signature: string, publicKey: string, folder: string }}
+   */
+  getUploadSignature({ expiresInSeconds = 1800 } = {}) {
+    const authParams = imagekit.getAuthenticationParameters(null, expiresInSeconds);
+
+    return {
+      token: authParams.token,
+      expire: authParams.expire,
+      signature: authParams.signature,
+      publicKey: process.env.IMAGEKIT_PUBLIC_KEY || '',
+      folder: '/wardrobe',
+    };
   },
   deleteImage,
   deleteImages,

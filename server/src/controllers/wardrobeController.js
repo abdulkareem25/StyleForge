@@ -1,5 +1,5 @@
 const WardrobeItem = require('../models/WardrobeItem');
-const { deleteImage } = require('../services/imageService');
+const { deleteImage, getUploadSignature } = require('../services/imageService');
 
 const CLEAR_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -96,8 +96,33 @@ const colors = async (req, res, next) => {
   }
 };
 
-const uploadAuth = async (req, res) => {
-  res.status(501).json({ success: false, data: null, error: 'Not implemented' });
+// ── WARD-01: ImageKit signed upload-auth token ───────────────────────
+// Returns a short-lived signed token so the client can upload directly
+// to ImageKit — image bytes never pass through the Express server (TAD §3, §11).
+//
+// Upload security is enforced at this boundary:
+//   - Allowed types: JPEG, PNG, WebP only (no SVG — scripts; no HEIC — unsupported)
+//   - Size cap: 10MB (enforced client-side pre-upload + ImageKit server-side)
+//   - Magic-byte validation: runs client-side before upload (fileValidation.js)
+//   - EXIF/GPS stripping: handled via ImageKit transformation pipeline or
+//     client-side canvas re-encoding before upload (Security doc §5)
+//
+// The actual file never touches this server. This endpoint only hands out
+// the signed auth parameters; validation of the uploaded content is the
+// client's responsibility before upload, and ImageKit's on storage.
+const uploadAuth = async (req, res, next) => {
+  try {
+    const authParams = getUploadSignature({ expiresInSeconds: 1800 });
+
+    res.status(200).json({
+      success: true,
+      data: authParams,
+      error: null,
+    });
+  } catch (error) {
+    console.error('Failed to generate upload auth token:', error.message || error);
+    next(error);
+  }
 };
 
 const create = async (req, res) => {
