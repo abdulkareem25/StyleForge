@@ -1,4 +1,5 @@
 const WardrobeItem = require('../models/WardrobeItem');
+const Outfit = require('../models/Outfit');
 const { getUploadSignature } = require('../services/imageService');
 const { tagImage } = require('../services/aiTaggingService');
 const { buildUserScopedFilter } = require('../utils/ownership');
@@ -70,6 +71,55 @@ const list = async (req, res, next) => {
         page,
         limit,
         pages: Math.ceil(total / limit),
+      },
+      error: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const show = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const itemId = req.params.id;
+    const filter = buildUserScopedFilter(itemId, userId);
+
+    const [item, outfits] = await Promise.all([
+      WardrobeItem.findOne(filter).lean(),
+      Outfit.find({ userId, itemIds: itemId }).select('id itemIds createdAt').lean(),
+    ]);
+
+    if (!item) {
+      return res.status(404).json({ success: false, data: null, error: 'Wardrobe item not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        item: {
+          id: item._id,
+          imageUrl: item.imageUrl,
+          thumbnailUrl: item.thumbnailUrl,
+          category: item.category,
+          subCategory: item.subCategory,
+          sleeveLength: item.sleeveLength,
+          fit: item.fit,
+          primaryColor: item.primaryColor,
+          secondaryColor: item.secondaryColor,
+          pattern: item.pattern,
+          formalityTags: item.formalityTags,
+          seasonTags: item.seasonTags,
+          isActive: item.isActive,
+          userCorrected: item.userCorrected,
+          aiTagConfidence: item.aiTagConfidence,
+          createdAt: item.createdAt,
+        },
+        outfits: outfits.map((outfit) => ({
+          id: outfit._id,
+          itemIds: outfit.itemIds,
+          createdAt: outfit.createdAt,
+        })),
       },
       error: null,
     });
@@ -303,6 +353,7 @@ const remove = async (req, res, next) => {
 
 module.exports = {
   list,
+  show,
   colors,
   uploadAuth,
   create,

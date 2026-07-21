@@ -7,6 +7,7 @@ const assert = require('node:assert/strict');
 
 const aiTaggingService = require('../src/services/aiTaggingService');
 const WardrobeItem = require('../src/models/WardrobeItem');
+const Outfit = require('../src/models/Outfit');
 
 const originalTagImage = aiTaggingService.tagImage;
 
@@ -229,5 +230,57 @@ test('remove soft deletes an owned item instead of hard deleting it', async () =
   WardrobeItem.findOneAndUpdate = originalFindOneAndUpdate;
 });
 
+test('show detail for owned item and include outfits that reference it', async () => {
+  const existingItem = {
+    _id: 'item-999',
+    userId: 'user-123',
+    imageUrl: 'https://example.com/item.jpg',
+    thumbnailUrl: 'https://example.com/thumb.jpg',
+    category: 'tops',
+    subCategory: 'shirt',
+    sleeveLength: 'full',
+    fit: 'regular',
+    primaryColor: 'navy',
+    secondaryColor: 'white',
+    pattern: 'solid',
+    formalityTags: ['formal'],
+    seasonTags: ['winter'],
+    isActive: true,
+    aiTagConfidence: 0.42,
+    userCorrected: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  };
+
+  const outfits = [{ _id: 'outfit-1', itemIds: ['item-999'] }];
+
+  WardrobeItem.findOne = () => ({
+    lean: async () => existingItem,
+  });
+  Outfit.find = () => ({
+    select: () => ({
+      lean: async () => outfits,
+    }),
+  });
+
+  delete require.cache[require.resolve('../src/controllers/wardrobeController')];
+  const wardrobeController = require('../src/controllers/wardrobeController');
+
+  const req = { user: { id: 'user-123' }, params: { id: 'item-999' } };
+  const res = createMockRes();
+  const next = () => { };
+
+  await wardrobeController.show(req, res, next);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.payload.success, true);
+  assert.equal(res.payload.data.item.id, 'item-999');
+  assert.equal(res.payload.data.outfits.length, 1);
+  assert.equal(res.payload.data.outfits[0].id, 'outfit-1');
+
+  WardrobeItem.findOne = originalFindOne;
+  Outfit.find = originalOutfitFind;
+});
+
 const originalFindOne = WardrobeItem.findOne;
 const originalFindOneAndUpdate = WardrobeItem.findOneAndUpdate;
+const originalOutfitFind = Outfit.find;

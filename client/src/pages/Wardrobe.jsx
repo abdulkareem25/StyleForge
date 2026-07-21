@@ -1,11 +1,11 @@
 import { Filter, Shirt, Upload } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button, Card, Chip, Drawer, SkeletonGrid } from '../components/ui'
 import { useToast } from '../components/ui/Toast'
 import BatchUploadWidget from '../components/wardrobe/BatchUploadWidget'
-import TagReviewPanel from '../components/wardrobe/TagReviewPanel'
 import WardrobeFilterPanel from '../components/wardrobe/WardrobeFilterPanel'
-import { getWardrobe, getWardrobeColors, updateWardrobeItem } from '../services/wardrobeService'
+import { getWardrobe, getWardrobeColors } from '../services/wardrobeService'
 
 const INITIAL_FILTERS = { category: undefined, color: undefined, formalityTag: undefined, isActive: 'true', search: undefined }
 
@@ -107,7 +107,7 @@ export default function Wardrobe() {
   const [availableColors, setAvailableColors] = useState([])
   const [showUploadWidget, setShowUploadWidget] = useState(false)
   const [uploadSummary, setUploadSummary] = useState(null)
-  const [selectedItem, setSelectedItem] = useState(null)
+  const navigate = useNavigate()
   const toast = useToast()
 
   const activeFilterCount = useMemo(() => {
@@ -200,32 +200,12 @@ export default function Wardrobe() {
     }
   }, [toast])
 
-  const handleItemSave = useCallback(async (updatedItems) => {
-    const item = updatedItems[0]
-    if (!item?._id && !item?.id) return
-
-    const payload = {
-      category: item.category,
-      subCategory: item.subCategory,
-      sleeveLength: item.sleeveLength,
-      fit: item.fit,
-      primaryColor: item.primaryColor,
-      secondaryColor: item.secondaryColor,
-      pattern: item.pattern,
-      formalityTags: item.formalityTags,
-      seasonTags: item.seasonTags,
-      userCorrected: true,
+  const handleSelectItem = useCallback((item) => {
+    const id = item._id || item.id
+    if (id) {
+      navigate(`/wardrobe/${id}`)
     }
-
-    try {
-      await updateWardrobeItem(item._id || item.id, payload)
-      toast.success('Item updated')
-      setSelectedItem(null)
-      fetchItems()
-    } catch {
-      toast.error('Could not save your changes')
-    }
-  }, [fetchItems, toast])
+  }, [navigate])
 
   const filterTrigger = (
     <button
@@ -309,7 +289,7 @@ export default function Wardrobe() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
                 {items.map((item) => (
-                  <ItemCard key={item._id || item.id} item={item} onSelect={setSelectedItem} />
+                  <ItemCard key={item._id || item.id} item={item} onSelect={handleSelectItem} />
                 ))}
               </div>
 
@@ -331,19 +311,6 @@ export default function Wardrobe() {
           )}
         </main>
       </div>
-
-      <Drawer
-        open={Boolean(selectedItem)}
-        onClose={() => setSelectedItem(null)}
-        title="Review item"
-        side="bottom"
-      >
-        {selectedItem && (
-          <div className="pb-4">
-            <TagReviewPanel items={[selectedItem]} onItemsConfirmed={handleItemSave} onSkip={() => setSelectedItem(null)} />
-          </div>
-        )}
-      </Drawer>
 
       {/* Mobile filter drawer */}
       <Drawer
