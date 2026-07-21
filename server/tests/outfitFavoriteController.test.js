@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const outfitController = require('../src/controllers/outfitController');
 const Outfit = require('../src/models/Outfit');
+const { OutfitGenerationError } = require('../src/errors/AppError');
 
 function createResponse() {
   let statusCode = 200;
@@ -135,7 +136,7 @@ test('is idempotent — two calls produce correctly toggled states', async () =>
   Outfit.findOneAndUpdate = originalFindOneAndUpdate;
 });
 
-test('returns 500 on unexpected errors', async () => {
+test('calls next with OutfitGenerationError on unexpected errors', async () => {
   const originalFindOne = Outfit.findOne;
   Outfit.findOne = async () => {
     throw new Error('db connection lost');
@@ -143,12 +144,15 @@ test('returns 500 on unexpected errors', async () => {
 
   const req = { user: { id: 'user-1' }, params: { id: 'outfit-1' } };
   const res = createResponse();
+  let nextError = null;
 
-  await outfitController.favorite(req, res, () => {});
+  await outfitController.favorite(req, res, (err) => { nextError = err; });
 
-  assert.equal(res.statusCode, 500);
-  assert.equal(res.payload.success, false);
-  assert.equal(res.payload.error, 'Something went wrong toggling favorite');
+  assert.ok(nextError instanceof OutfitGenerationError);
+  assert.equal(nextError.status, 500);
+  assert.equal(nextError.category, 'outfit');
+  assert.equal(nextError.alert, true);
+  assert.equal(nextError.message, 'Something went wrong toggling favorite');
 
   Outfit.findOne = originalFindOne;
 });

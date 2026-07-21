@@ -3,6 +3,7 @@ const Outfit = require('../models/Outfit');
 const OutfitHistory = require('../models/OutfitHistory');
 const { generateCombinationHash } = require('../utils/comboHash');
 const { buildUserScopedFilter } = require('../utils/ownership');
+const { OutfitGenerationError } = require('../errors/AppError');
 
 const generate = async (req, res, next) => {
   try {
@@ -17,16 +18,11 @@ const generate = async (req, res, next) => {
       error: null,
     });
   } catch (error) {
-    console.error(error.stack || error.message || error);
-    return res.status(500).json({
-      success: false,
-      data: null,
-      error: 'Something went wrong generating your outfit — please try again',
-    });
+    next(new OutfitGenerationError('Something went wrong generating your outfit — please try again', { cause: error }));
   }
 };
 
-const wear = async (req, res, _next) => {
+const wear = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
     const { itemIds = [], occasion, weather } = req.body || {};
@@ -81,12 +77,11 @@ const wear = async (req, res, _next) => {
 
     return res.status(200).json({ success: true, data: { outfitId: outfit._id, alreadyRecorded: false }, error: null });
   } catch (error) {
-    console.error(error.stack || error.message || error);
-    return res.status(500).json({ success: false, data: null, error: 'Something went wrong confirming your wear' });
+    next(new OutfitGenerationError('Something went wrong confirming your wear', { cause: error }));
   }
 };
 
-const favorite = async (req, res, _next) => {
+const favorite = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
     const { id } = req.params;
@@ -110,8 +105,7 @@ const favorite = async (req, res, _next) => {
       error: null,
     });
   } catch (error) {
-    console.error(error.stack || error.message || error);
-    return res.status(500).json({ success: false, data: null, error: 'Something went wrong toggling favorite' });
+    next(new OutfitGenerationError('Something went wrong toggling favorite', { cause: error }));
   }
 };
 
