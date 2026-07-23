@@ -151,7 +151,7 @@ styleforge/
 │   ├── eslint.config.js
 │   └── .env.example
 │
-├── .github/workflows/ci.yml   # CI: lint on PR
+├── .github/workflows/ci.yml   # CI: lint on Pull Request 
 ├── render.yaml                 # Render Blueprint (deployment)
 ├── .gitignore
 └── README.md
